@@ -23,9 +23,14 @@ def printStruct(struct):
 
 
 def openFile(fn):
-    with open(fn, 'r') as file:
-        projectFile = rpp.load(file)
-        return projectFile
+    if fn != '':
+        with open(fn, 'r') as file:
+            try:
+                projectFile = rpp.load(file)
+            except (UnicodeDecodeError, ValueError, RuntimeError):
+                sg.popup_error('Could not parse this file')
+                return None
+            return projectFile
 
 
 def browseFile():

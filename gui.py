@@ -87,7 +87,9 @@ def newAddNewProject():
     fname = rppFile.browseFile()
     print(fname[0])
     projectFile = rppFile.openFile(fname[0])
-    rppFile.printStruct(projectFile)
+    if projectFile is None:
+        return
+#    rppFile.printStruct(projectFile)
     dtls = rppFile.getFileDetails(fname[0])
     dtls.append(projectFile.find('TEMPO')[1])
     dtls.append(projectFile.find('RECORD_PATH')[1])

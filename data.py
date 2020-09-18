@@ -1,3 +1,4 @@
+import os
 import string
 
 import db
@@ -5,6 +6,15 @@ import PySimpleGUI as sg
 from fpdf import FPDF
 
 allProjects = None
+lastBrowseDir = ''
+
+
+def browseDir():
+    event, values = sg.Window('Destination folder',
+                              [[sg.Text('Folder to open')],
+                               [sg.In(lastBrowseDir), sg.FolderBrowse()],
+                               [sg.Open(), sg.Cancel()]]).read(close=True)
+    return values[0]
 
 
 class MyPDF(FPDF):
@@ -44,10 +54,10 @@ class Plugin:
     def getPluginDetails(self):
         return [self.name, self.file, self.preset]
 
-    def print(self, pdf: FPDF, dh: float):
-        pdf.writeStr(self.name, 3.0, dh, setx=0.75, ln=0)
+    def print(self, pdf: FPDF, dh: float, indent: float):
+        pdf.writeStr(self.name, 3.0, dh, setx=indent, ln=0)
         pdf.writeStr(self.file, 1.75, dh, ln=0)
-        pdf.writeStr(self.preset, 2.0, dh)
+        pdf.writeStr("None" if self.preset == '' else self.preset, 2.0, dh)
 
 
 class Item:
@@ -61,9 +71,9 @@ class Item:
     def getItemDetails(self):
         return [self.name, self.source, self.position]
 
-    def print(self, pdf: MyPDF, dh: float):
-        pdf.writeStr(self.name, 2.0, dh, setx=0.75, ln=0)
-        pdf.writeStr(self.source, 1.0, dh, ln=0)
+    def print(self, pdf: MyPDF, dh: float, indent: float):
+        pdf.writeStr(self.name, 2.0, dh, setx=indent, ln=0)
+        pdf.writeStr(self.source, 0.5, dh, ln=0)
         pdf.writeStr(str(self.position), 1.5, dh, ln=0)
         pdf.writeStr(self.file, 2.0, dh)
 
@@ -95,36 +105,36 @@ class Track:
     def getPlugins(self):
         return self.plugins
 
-    def print(self, pdf: MyPDF, dh: float):
-        pdf.writeStr('Track %d: %s' % (self.trackNum, self.name), 2.0, 0.5, setx=0.5, style='B', size=12)
-        pdf.writeStr('Main send', 1.0, dh, setx=0.75, size=10, ln=0)
+    def print(self, pdf: MyPDF, dh: float, indent: float):
+        pdf.writeStr('Track %d: %s' % (self.trackNum, self.name), 2.0, 0.3, style='B', size=12)
+        pdf.writeStr('Main send', 1.0, dh, setx=indent, size=10, ln=0)
         pdf.writeStr('Vol', 1.5, dh, ln=0)
         pdf.writeStr('Pan', 1.5, dh, ln=0)
         pdf.writeStr('Aux Receives', 1.75, dh)
-        pdf.writeStr(self.mainSend, 1.0, dh, setx=0.75, style='', ln=0)
+        pdf.writeStr('Yes' if self.mainSend == 1 else 'No', 1.0, dh, setx=indent, style='', ln=0)
         pdf.writeStr(self.vol, 1.5, dh, ln=0)
         pdf.writeStr(self.pan, 1.5, dh, ln=0)
-        pdf.writeStr(self.auxReceives, 1.75, dh)
+        pdf.writeStr("None" if self.auxReceives == '' else self.auxReceives, 1.75, dh)
         if len(self.trackNotes) > 0:
-            pdf.writeStr('Notes', 1.0, dh, setx=0.75)
-            pdf.writeStr(self.trackNotes, 2.0, 3.0, align='T', setx=0.75)
+            pdf.writeStr('Notes', 1.0, dh, setx=indent)
+            pdf.writeStr(self.trackNotes, 2.0, 3.0, align='T', setx=indent)
         items = self.items.values()
         if len(items) > 0:
-            pdf.writeStr('Item Name', 2.0, dh, setx=0.75, size=10, style='B', ln=0)
-            pdf.writeStr('Source', 1.0, dh, ln =0)
+            pdf.writeStr('Item Name', 2.0, dh, setx=indent, size=10, style='B', ln=0)
+            pdf.writeStr('Source', 0.5, dh, ln=0)
             pdf.writeStr('Position', 1.5, dh, ln=0)
             pdf.writeStr('File', 2.0, dh)
             pdf.setFont(size=8)
             for item in items:
-                item.print(pdf, dh)
+                item.print(pdf, dh, indent)
         plugins = self.plugins.values()
         if len(plugins) > 0:
-            pdf.writeStr('Plugin Name', 3.0, dh, setx=0.75, style='B', size=10, ln=0)
+            pdf.writeStr('Plugin Name', 3.0, dh, setx=indent, style='B', size=10, ln=0)
             pdf.writeStr('File', 1.75, dh, ln=0)
             pdf.writeStr('Preset', 2.0, dh)
             pdf.setFont(style='', size=8)
             for plugin in plugins:
-                plugin.print(pdf, dh)
+                plugin.print(pdf, dh, indent)
 
 
 class Project:
@@ -154,9 +164,11 @@ class Project:
         return [self.name, self.take, self.date]
 
     def print(self):
+        global lastBrowseDir
         pdf = MyPDF()
         pdf.add_page()
-        dh = 0.25
+        dh = 0.2
+        indent = 0.6
         pdf.writeStr(self.name, 7.5, 0.5, align='C', color=(220, 50, 50), size=18)
         pdf.writeStr('Take %s on %s' % (self.take, self.date), 7.5, 0.5, align='C', size=14)
         pdf.writeStr('Location: %s' % self.location, 3.5, dh, color=(0, 0, 0), size=10, style='B')
@@ -167,11 +179,16 @@ class Project:
             pdf.writeStr('Notes', 1.0, dh, size=12)
             pdf.setFont(size=10, style='')
             for note in self.projectNotes.split('\n'):
-                pdf.writeStr(note, 7.0, dh, setx=0.75)
+                pdf.writeStr(note, 7.0, dh, setx=indent)
         for track in self.tracks.values():
-            track.print(pdf, dh)
-        f = sg.popup_get_text("type a path to save the PDF file")
-        pdf.output(f + '/%s.pdf' % self.name, 'F')
+            track.print(pdf, dh, indent)
+            f = ''
+        f = browseDir()
+        try:
+            pdf.output(f + '/%s.pdf' % self.name, 'F')
+            lastBrowseDir = f
+        except RuntimeError:
+            sg.popup_error('Could not write to file')
 
 
 class Projects:
