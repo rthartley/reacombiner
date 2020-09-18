@@ -1,0 +1,100 @@
+Metadata-Version: 2.0
+Name: rpp
+Version: 0.4
+Summary: REAPER Project File Parser
+Home-page: https://github.com/Perlence/rpp
+Author: Sviatoslav Abakumov
+Author-email: dust.harvesting@gmail.com
+License: BSD
+Download-URL: https://github.com/Perlence/rpp/archive/0.4.tar.gz
+Description-Content-Type: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
+Classifier: Programming Language :: Python :: 3.5
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Topic :: Text Processing
+Requires-Dist: ply
+Requires-Dist: attrs
+
+RPP
+===
+
+Description
+-----------
+
+RPP is a format used to describe `REAPER <http://reaper.fm>`_ projects. This package is designed to be RPP
+parser/emitter and uses `PLY <http://www.dabeaz.com/ply/>`_ as parser framework.
+
+
+Examples
+--------
+
+Import the package:
+
+.. code-block:: python
+
+   >>> import rpp
+
+Decode RPP:
+
+.. code-block:: python
+
+   >>> r = rpp.loads("""\
+   <REAPER_PROJECT 0.1 "4.32" 1372525904
+     RIPPLE 0
+     GROUPOVERRIDE 0 0 0
+     AUTOXFADE 1
+   >
+   """)
+   >>> r
+   Element(tag='REAPER_PROJECT', attrib=['0.1', '4.32', '1372525904'], children=[
+       ['RIPPLE', '0'],
+       ['GROUPOVERRIDE', '0', '0', '0'],
+       ['AUTOXFADE', '1'],
+   ])
+
+Transform elements into RPP:
+
+.. code-block:: python
+
+   >>> from rpp import Element
+   >>> rpp.dumps(
+   ...     Element(tag='REAPER_PROJECT', attrib=['0.1', '4.32', '1372525904'], children=[
+   ...         ['RIPPLE', '0'],
+   ...         ['GROUPOVERRIDE', '0', '0', '0'],
+   ...         ['AUTOXFADE', '1'],
+   ...     ]))
+   '<REAPER_PROJECT 0.1 4.32 1372525904\n  RIPPLE 0\n  GROUPOVERRIDE 0 0 0\n  AUTOXFADE 1\n>\n'
+
+``Element`` mimics the interface of xml.etree.ElementTree.Element_. You can perform quering operations with ``findall``,
+``find``, ``iterfind``. Note that attribute and text predicates are not supported.
+
+.. _xml.etree.ElementTree.Element: https://docs.python.org/3/library/xml.etree.elementtree.html#xml.etree.ElementTree.Element
+
+.. code-block:: python
+
+   >>> groupoverride = r.find('.//GROUPOVERRIDE')
+   >>> groupoverride
+   ['GROUPOVERRIDE', '0', '0', '0']
+   >>> groupoverride[1:] = ['9', '9', '9']
+   >>> r
+   Element(tag='REAPER_PROJECT', attrib=['0.1', '4.32', '1372525904'], children=[
+       ['RIPPLE', '0'],
+       ['GROUPOVERRIDE', '9', '9', '9'],
+       ['AUTOXFADE', '1'],
+   ])
+
+
+Dependencies
+------------
+
+- `attrs <https://attrs.readthedocs.org/>`_
+- `ply <http://www.dabeaz.com/ply/>`_
+
+

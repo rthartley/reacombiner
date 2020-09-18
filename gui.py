@@ -1,33 +1,40 @@
-from xml.etree.ElementTree import Element
+import subprocess
+from pathlib import PurePath
+
+from fpdf import FPDF
+
+from data import Projects, Project, Track, Item, Plugin
 
 import PySimpleGUI as sg
 import rpp
-
 import db
 import rppFile
 import data
 
 sg.ChangeLookAndFeel('LightGreen')
 sg.SetOptions(element_padding=(0, 0))
-bg_color="cadetblue"
+bg_color = "cadetblue"
+
+allProjects: Projects;
 
 # ------ Menu Definition ------ #
-menu_def = [['File', ['Add Project', 'DeleteProject', 'Print Project', 'Exit']],
+menu_def = [['File', ['Add Project', 'Delete Project', 'Print Project', 'Exit']],
             ['Run', ['Run Reaper']],
-            ['Help', 'About...'],
-            ['Find', 'Find...']]
+            ['Help', 'About...']]
 
-projectTableHeadings = ['Project', 'Take', 'Last Modified']
-projectTable = sg.Table(data.projectTableData, auto_size_columns=False,
+# projectTableHeadings = ['Project', 'Take', 'Last Modified']
+projectTableHeadings = [sg.Button('Project'), sg.Button('Take'), sg.Button('Last Modified')]
+projectTable = sg.Table([], auto_size_columns=False,
                         col_widths=[20, 12, 20], justification="left",
-                        key='PROJECTS', num_rows=15, enable_events=True, headings=projectTableHeadings)
+                        key='PROJECTS', num_rows=15, enable_events=True,
+                        headings=[b.get_text() for b in projectTableHeadings])
 projectTexts = [
     [sg.Text('Location', justification='r', pad=((0, 10), (15, 5))),
-     sg.Text(size=(50, 2), key='location', auto_size_text=True, background_color=bg_color, pad=((0, 0), (15, 5)))],
+     sg.Text(size=(45, 2), key='location', auto_size_text=True, background_color=bg_color, pad=((0, 0), (15, 5)))],
     [sg.Text('Tempo', justification='r', pad=((0, 10), (0, 5))),
      sg.Text(size=(20, 1), key='tempo', background_color=bg_color, pad=((0, 0), (0, 5)))],
     [sg.Text('Record Path', justification='r', pad=((0, 10), (0, 0))),
-     sg.Text(size=(50,2), key='record_path', auto_size_text=True, background_color=bg_color, pad=((0, 0), (0, 5)))],
+     sg.Text(size=(45, 2), key='record_path', auto_size_text=True, background_color=bg_color, pad=((0, 0), (0, 5)))],
     [sg.Text('Sample Rate', justification='r', pad=((0, 10), (0, 0))),
      sg.Text(size=(10, 1), key='sample_rate', background_color=bg_color, pad=((0, 0), (0, 5)))],
     [sg.Frame("Project Notes",
@@ -48,7 +55,8 @@ trackTexts = [[sg.Text('Main Send', justification='r', pad=((0, 10), (15, 5))),
                sg.Text(size=(10, 1), key='pan', background_color=bg_color, pad=((0, 0), (0, 5)))],
               [sg.Text('Aux Recvs', justification='r', pad=((0, 10), (0, 5))),
                sg.Text(size=(25, 5), key='aux_recvs', background_color=bg_color, pad=((0, 0), (0, 5)))],
-              [sg.Frame("Track Notes", [[sg.Text(size=(40, 10), background_color=bg_color)]], pad=((0, 0), (15, 15)))]]
+              [sg.Frame("Track Notes", [[sg.Text(size=(40, 8), key='track_notes', background_color=bg_color)]],
+                        pad=((0, 0), (15, 15)))]]
 trackTableLayout = [[trackTable]] + trackTexts
 
 itemTableHeadings = ['Item Name', 'Source', 'Position']
@@ -56,11 +64,12 @@ itemTable = sg.Table([], auto_size_columns=False, num_rows=15, key='ITEMS', enab
                      col_widths=[25, 6, 20], justification="left", headings=itemTableHeadings)
 pluginTableHeadings = ['Name', 'File', 'Preset']
 pluginTable = sg.Table([], max_col_width=15, auto_size_columns=False, num_rows=15,
-                         col_widths=(32, 12, 32), key='PLUGINS', headings=pluginTableHeadings)
+                       col_widths=(24, 12, 12), key='PLUGINS', headings=pluginTableHeadings,
+                       justification="left")
 pluginTableLayout = [[pluginTable]]
 itemTexts = [
     [sg.Text('File', justification='r', pad=((0, 10), (15, 0))),
-     sg.Text(size=(50, 2), auto_size_text=True, background_color=bg_color, key='file', pad=((0, 0), (15, 0)))],
+     sg.Text(size=(40, 2), auto_size_text=True, background_color=bg_color, key='file', pad=((0, 0), (15, 0)))],
     [sg.Frame('Plugins', [[pluginTable]], pad=(10, 10))]]
 itemTableLayout = [[itemTable]] + itemTexts
 
@@ -68,13 +77,13 @@ itemTableLayout = [[itemTable]] + itemTexts
 layout = [
     [sg.Menu(menu_def, )],
     [
-        sg.Frame('Projects', projectTableLayout, vertical_alignment='top'),
+        sg.Frame('Projects', projectTableLayout, pad=((0, 10), (0,)), vertical_alignment='top'),
         sg.Frame('Tracks', trackTableLayout, vertical_alignment='top', pad=((0, 10), (0, 0))),
         sg.Frame('Items', itemTableLayout, vertical_alignment='top')],
 ]
 
 
-def addNewProject():
+def newAddNewProject():
     fname = rppFile.browseFile()
     print(fname[0])
     projectFile = rppFile.openFile(fname[0])
@@ -89,15 +98,22 @@ def addNewProject():
     else:
         txt = ""
     dtls.append(txt)
+    newProject = Project(allProjects.maxProjectNum + 1, dtls[0], dtls[1], dtls[2], dtls[3], dtls[4], dtls[5], dtls[6],
+                         dtls[7])
+    if allProjects.findProject(newProject):
+        sg.popup_error("Project exists")
+        return
     pnum = db.addProject(dtls)
-    data.addProject(pnum, dtls)
-    projectTable.update(data.projectTableData.values())
-
+    allProjects.addProject(newProject)
+    projectTable.update([[project.name, project.take, project.date] for project in allProjects.getProjects()])
     tracks = projectFile.findall('TRACK')
     print('Project has %d tracks' % len(tracks))
-    for tnum in range(0, len(tracks)):
-        track = tracks[tnum]
-        trackDtls = [track.find('NAME')[1], track.find('MAINSEND')[1], track.find('VOLPAN')[1], track.find('VOLPAN')[2],
+    clearTables()
+    for n in range(0, len(tracks)):
+        track = tracks[n]
+        tnum = n + 1
+        trackDtls = [track.find('NAME')[1], track.find('MAINSEND')[1], track.find('VOLPAN')[1],
+                     track.find('VOLPAN')[2],
                      ",".join([lst[1] for lst in track.findall('AUXRECV')])]
         tnotes = track.find('S&M_TRACKNOTES')
         if tnotes is not None:
@@ -105,7 +121,8 @@ def addNewProject():
         else:
             txt = ""
         trackDtls.append(txt)
-        data.addTrack(pnum, tnum, trackDtls)
+        newTrack = data.Track(tnum, trackDtls[0], trackDtls[1], trackDtls[2], trackDtls[3], trackDtls[4], trackDtls[5])
+        newProject.addTrack(newTrack)
         db.addTrack([pnum, tnum] + trackDtls)
         items = track.findall('ITEM')
         for inum in range(0, len(items)):
@@ -117,7 +134,8 @@ def addNewProject():
                 itemDtls.append(fl[1])
             else:
                 itemDtls.append('')
-            data.addItem(pnum, tnum, inum, itemDtls)
+            newItem = data.Item(inum, itemDtls[0], itemDtls[1], itemDtls[2], itemDtls[3])
+            newTrack.addItem(newItem)
             db.addItem([pnum, tnum, inum] + itemDtls)
         fxchain = track.find('FXCHAIN')
         if fxchain is not None:
@@ -126,17 +144,36 @@ def addNewProject():
             items = fxchain.find('.')
             for inum in range(0, len(items)):
                 item = items[inum]
-                if isinstance(item, list) and item[0] == 'PRESETNAME':
+                if isinstance(item, list) and item[0] == 'PRESETNAME' and vst is not None:
                     preset = item[1]
                     print('PRESETNAME=' + item[1] + ' goes with VST ' + str(vst))
                     pluginDtls = [vst[0], vst[1], item[1]]
-                    data.addPlugin(pnum, tnum, inum, pluginDtls)
+                    newPlugin = data.Plugin(inum, pluginDtls[0], pluginDtls[1], pluginDtls[2])
+                    newTrack.addPlugin(newPlugin)
                     db.addPlugin([pnum, tnum, inum] + pluginDtls)
-                    preset = None
+                    vst = None
                 elif isinstance(item, rpp.element.Element):
                     if item.tag == 'VST':
+                        if vst is not None:
+                            pluginDtls = [vst[0], vst[1], '']
+                            newPlugin = data.Plugin(inum, pluginDtls[0], pluginDtls[1], pluginDtls[2])
+                            newTrack.addPlugin(newPlugin)
+                            db.addPlugin([pnum, tnum, inum] + pluginDtls)
                         vst = item.attrib[0:2]
                         print('VST=' + str(vst))
+            if vst is not None:
+                pluginDtls = [vst[0], vst[1], '']
+                newPlugin = data.Plugin(inum, pluginDtls[0], pluginDtls[1], pluginDtls[2])
+                newTrack.addPlugin(newPlugin)
+                db.addPlugin([pnum, tnum, inum] + pluginDtls)
+
+
+def deleteOldProject(pnum: int):
+    if 'OK' == sg.popup_ok_cancel(" Are you absolutely sure? - there is no undo"):
+        db.deleteProject(pnum)
+        allProjects.deleteProject(pnum)
+        clearTables()
+        projectTable.update([[project.name, project.take, project.date] for project in allProjects.getProjects()])
 
 
 def createMyWindow():
@@ -170,7 +207,22 @@ def chunkStr(str, upto):
     return ret
 
 
-def showMyWindow():
+def clearTables():
+    window.find_element('main_send').update('')
+    window.find_element('vol').update('')
+    window.find_element('pan').update('')
+    window.find_element('aux_recvs').update('')
+    window.find('file').update('')
+    data.newShowTracks(trackTable, None)
+    data.newShowItems(itemTable, None)
+    data.newShowPlugins(pluginTable, None)
+
+
+def showMyWindow(projects: Projects):
+    global allProjects
+    allProjects = projects
+    projectTableData = [project.getProjectDetails() for project in projects.getProjects()]
+    projectTable.update(projectTableData)
     window.UnHide()
 
     # ------ Loop & Process button menu choices ------ #
@@ -183,57 +235,79 @@ def showMyWindow():
             sg.popup('About this program', 'Version 1.0', 'PySimpleGUI rocks...')
         elif event == 'Run Reaper':
             print(event)
+            if len(values['PROJECTS']) > 0:
+                row = values['PROJECTS'][0]
+                project = projects.getProject(row)
+                path = PurePath(project.location, project.name, project.take + '.rpp')
+                subprocess.call(['C:/Program Files/REAPER (x64)/reaper.exe', str(path)])
+            else:
+                sg.popup_error('First select a project to run')
         elif event == 'Add Project':
-            addNewProject()
+            newAddNewProject()
         elif event == 'Delete Project':
             print(event)
+            if len(values['PROJECTS']) > 0:
+                row = values['PROJECTS'][0]
+                pnum = projects.getProject(row).projectNum
+                deleteOldProject(pnum)
+            else:
+                sg.popup_error('First select a project to run')
         elif event == 'Print Project':
             print(event)
+            if len(values['PROJECTS']) > 0:
+                row = values['PROJECTS'][0]
+                project = projects.getProject(row)
+                project.print()
+            else:
+                sg.popup_error('First select a project to run')
         elif event == 'PROJECTS':
             print(values['PROJECTS'])
-            row = values['PROJECTS'][0]
-            pnum = sorted(data.projectTableData.keys())[row]
-            window.find_element('location').update(chunkStr(data.projectTableData[pnum][3], 50)) # 50 is text width
-            window.find_element('tempo').update(data.projectTableData[pnum][4])
-            window.find_element('record_path').update(chunkStr(data.projectTableData[pnum][5], 50)) # 50 is text width
-            window.find_element('sample_rate').update(data.projectTableData[pnum][6])
-            window.find_element('project_notes').update(data.projectTableData[pnum][7])
-            data.showTracks(trackTable, pnum)
-            window.find_element('main_send').update('')
-            window.find_element('vol').update('')
-            window.find_element('pan').update('')
-            window.find_element('aux_recvs').update('')
-            window.find('file').update('')
-            data.showItems(itemTable, -1, -1)
-            data.showPlugins(pluginTable, -1, -1)
+            if len(values['PROJECTS']) > 0:
+                row = values['PROJECTS'][0]
+                project = projects.getProject(row)
+                window.find_element('location').update(chunkStr(project.location, 50))  # 50 is text width
+                window.find_element('tempo').update(project.tempo)
+                window.find_element('record_path').update(
+                    chunkStr(project.recordPath, 50))  # 50 is text width
+                window.find_element('sample_rate').update(project.sampleRate)
+                window.find_element('project_notes').update(project.projectNotes)
+                clearTables()
+                data.newShowTracks(trackTable, project)
         elif event == 'TRACKS':
             print(values['TRACKS'])
-            prow = values['PROJECTS'][0]
-            pnum = sorted(data.projectTableData.keys())[prow]
-            trow = values['TRACKS'][0]
-            tnum = sorted(data.trackTableData[pnum].keys())[trow]
-            window.find_element('main_send').update(data.trackTableData[pnum][tnum][1])
-            window.find_element('vol').update(data.trackTableData[pnum][tnum][2])
-            window.find_element('pan').update(data.trackTableData[pnum][tnum][3])
-            ar = window.find_element('aux_recvs')
-            mstr = chunk(data.trackTableData[pnum][tnum][4].split(","), 25) # 25 is width of aux_recvs
-            ar.update(mstr)
-            data.showItems(itemTable, pnum, tnum)
-            data.showPlugins(pluginTable, pnum, tnum)
+            if len(values['PROJECTS']) > 0 and len(values['TRACKS']) > 0:
+                prow = values['PROJECTS'][0]
+                project = projects.getProject(row)
+                trow = values['TRACKS'][0]
+                tracks = project.getTracks()
+                trackNum = trackTable.get()[trow][0]
+                track = tracks[trackNum]
+                window.find_element('main_send').update(track.mainSend)
+                window.find_element('vol').update(track.vol)
+                window.find_element('pan').update(track.pan)
+                ar = window.find_element('aux_recvs')
+                lst = track.auxReceives.split(",")
+                if lst == ['']:
+                    mstr = ''
+                else:
+                    mstr = chunk([str(int(n) + 1) for n in lst], 25)  # 25 is width of aux_recvs
+                ar.update(mstr)
+                window.find_element('track_notes').update(track.trackNotes)
+                data.newShowItems(itemTable, track)
+                data.newShowPlugins(pluginTable, track)
         elif event == 'ITEMS':
             print(values['ITEMS'])
-            prow = values['PROJECTS'][0]
-            pnum = sorted(data.projectTableData.keys())[prow]
-            trow = values['TRACKS'][0]
-            tnum = sorted(data.trackTableData[pnum].keys())[trow]
-            irow = values['ITEMS'][0]
-            inum = sorted(data.itemTableData[pnum][tnum].keys())[irow]
-            window.find_element('file').update(chunkStr(data.itemTableData[pnum][tnum][inum][3], 50))
+            if len(values['PROJECTS']) > 0 and len(values['TRACKS']) > 0 and len(values['ITEMS']) > 0:
+                prow = values['PROJECTS'][0]
+                project = projects.getProject(row)
+                trow = values['TRACKS'][0]
+                tracks = project.getTracks()
+                trackNum = trackTable.get()[trow][0]
+                track = tracks[trackNum]
+                irow = values['ITEMS'][0]
+                window.find_element('file').update(chunkStr(track.getItems()[irow].file, 50))
         else:
             print(event, values)
     window.close()
     db.close()
 
-
-def showProjects(projectTableData):
-     projectTable.update(projectTableData.values())

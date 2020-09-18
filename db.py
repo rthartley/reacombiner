@@ -139,37 +139,70 @@ def createTables():
     createTable(sql_create_plugins_table)
 
 
+
 def loadProjects():
     sql = 'SELECT * from projects'
     cur = conn.cursor()
     cur.execute(sql)
     projects = cur.fetchall()
     cur.close()
+    tempProjects = data.Projects()
+    maxProjectNum = 0
     for project in projects:
-        data.addProject(project[0], project[1:])  # include project_id
-        sql = "SELECT * FROM tracks where project_id = " + str(project[0])
-        cur = conn.cursor()
-        cur.execute(sql)
-        tracks = cur.fetchall()
-        cur.close()
-        for track in tracks:
-            data.addTrack(track[1], track[2], track[3:])  # remove track_id, but include project_id and track_num
-            sql = "SELECT * FROM items where project_num = " + str(project[0]) + " AND track_id = " + str(track[2])
-            cur = conn.cursor()
-            cur.execute(sql)
-            items = cur.fetchall()
-            cur.close()
-            for item in items:
-                data.addItem(item[1], item[2], item[3], item[4:])
-            sql = "SELECT * FROM plugins where project_num = " + str(project[0]) + " AND track_id = " + str(track[2])
-            cur = conn.cursor()
-            cur.execute(sql)
-            plugins = cur.fetchall()
-            cur.close()
-            for plugin in plugins:
-                data.addPlugin(plugin[1], plugin[2], plugin[3], plugin[4:])
-    # finally show just the project data
-    gui.showProjects(data.projectTableData)
+        projectNum = project[0]
+        maxProjectNum = max(maxProjectNum, projectNum)
+        tempProject = data.Project(project[0], project[1], project[2], project[3], project[4], project[5], project[6], project[7], project[8])
+        tempProjects.addProject(tempProject)
+    tempProjects.maxProjectNum = maxProjectNum
+    sql = "SELECT * FROM tracks "
+    cur = conn.cursor()
+    cur.execute(sql)
+    tracks = cur.fetchall()
+    cur.close()
+    for track in tracks:
+        tempProject1 = tempProjects.findProjectNum(track[1])
+        tempTrack1 = data.Track(track[2], track[3], track[4], track[5], track[6], track[7], track[8])
+        tempProject1.addTrack(tempTrack1)
+    sql = "SELECT * FROM items "
+    cur = conn.cursor()
+    cur.execute(sql)
+    items = cur.fetchall()
+    cur.close()
+    for item in items:
+        tempProject2 = tempProjects.findProjectNum(item[1])
+        tempTrack2 = tempProject2.getTrack(item[2])
+        tempItem2 = data.Item(item[3], item[4], item[5], item[6], item[7])
+        tempTrack2.addItem(tempItem2)
+    sql = "SELECT * FROM plugins "
+    cur = conn.cursor()
+    cur.execute(sql)
+    plugins = cur.fetchall()
+    cur.close()
+    for plugin in plugins:
+        tempProject3 = tempProjects.findProjectNum(plugin[1])
+        tempTrack3 = tempProject3.getTrack(plugin[2])
+        tempPlugin3 = data.Plugin(plugin[3], plugin[4], plugin[5], plugin[6])
+        tempTrack3.addPlugin(tempPlugin3)
+    return tempProjects
+
+
+def deleteProject(pnum):
+    sql = ' DELETE FROM plugins WHERE project_num = ' + str(pnum)
+    cursor = conn.cursor()
+    cursor.execute(sql)
+    conn.commit()
+    sql = ' DELETE FROM items WHERE project_num = ' + str(pnum)
+    cursor = conn.cursor()
+    cursor.execute(sql)
+    conn.commit()
+    sql = ' DELETE FROM tracks WHERE project_id = ' + str(pnum)
+    cursor = conn.cursor()
+    cursor.execute(sql)
+    conn.commit()
+    sql = ' DELETE FROM projects WHERE id = ' + str(pnum)
+    cursor = conn.cursor()
+    cursor.execute(sql)
+    conn.commit()
 
 
 def close():

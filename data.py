@@ -1,65 +1,229 @@
+import string
+
 import db
 import PySimpleGUI as sg
+from fpdf import FPDF
 
-projectTableData = {}
-trackTableData = {}
-itemTableData = {}
-pluginTableData = {}
+allProjects = None
 
 
-def addProject(pnum, projectData):
-    if projectData not in projectTableData.values():
-        projectTableData[pnum] = projectData
-    else:
-        sg.popup_error('Project already exists')
+class MyPDF(FPDF):
+    def __init__(self):
+        super().__init__('P', 'in', 'Letter')
+        self.fontName = 'Arial'
+        self.fontStyle = ''
+        self.fontSize = 12
+        self.set_xy(0.0, 0.0)
+
+    def setFont(self, name: string = None, style=None, size=None):
+        if name is not None:
+            self.fontName = name
+        if style is not None:
+            self.fontStyle = style
+        if size is not None:
+            self.fontSize = size
+        self.set_font(self.fontName, self.fontStyle, self.fontSize)
+
+    def writeStr(self, str: string, width: float, height: float, align: str = 'L', ln=1,
+                 setx=None, color=None, name=None, size=None, style=None, border=0):
+        self.setFont(name, style, size)
+        if setx is not None:
+            self.set_x(setx)
+        if color is not None:
+            self.set_text_color(*color)
+        self.cell(w=width, h=height, align=align, txt=str, border=border, ln=ln)
 
 
-def addTrack(pnum, tnum, trackData):
-    if pnum not in trackTableData.keys():
-        trackTableData[pnum] = {}
-    trackTableData[pnum][tnum] = trackData
+class Plugin:
+    def __init__(self, pluginNum: int, name: str, file: str, preset: str):
+        self.pluginNum = pluginNum
+        self.name = name
+        self.file = file
+        self.preset = preset
+
+    def getPluginDetails(self):
+        return [self.name, self.file, self.preset]
+
+    def print(self, pdf: FPDF, dh: float):
+        pdf.writeStr(self.name, 3.0, dh, setx=0.75, ln=0)
+        pdf.writeStr(self.file, 1.75, dh, ln=0)
+        pdf.writeStr(self.preset, 2.0, dh)
 
 
-def addItem(pnum, tnum, inum, itemData):
-    if pnum not in itemTableData.keys():
-         itemTableData[pnum] = {}
-    if tnum not in itemTableData[pnum].keys():
-        itemTableData[pnum][tnum] = {}
-    itemTableData[pnum][tnum][inum] = itemData
+class Item:
+    def __init__(self, itemNum: int, name: str, source: str, position: str, file: str):
+        self.itemNum = itemNum
+        self.name = name
+        self.source = source
+        self.position = position
+        self.file = file
+
+    def getItemDetails(self):
+        return [self.name, self.source, self.position]
+
+    def print(self, pdf: MyPDF, dh: float):
+        pdf.writeStr(self.name, 2.0, dh, setx=0.75, ln=0)
+        pdf.writeStr(self.source, 1.0, dh, ln=0)
+        pdf.writeStr(str(self.position), 1.5, dh, ln=0)
+        pdf.writeStr(self.file, 2.0, dh)
 
 
-def addPlugin(pnum, tnum, vnum, pluginData):
-    if pnum not in pluginTableData.keys():
-         pluginTableData[pnum] = {}
-    if tnum not in pluginTableData[pnum].keys():
-        pluginTableData[pnum][tnum] = {}
-    pluginTableData[pnum][tnum][vnum] = pluginData
+class Track:
+    def __init__(self, trackNum: int, name: str, mainSend: str, vol: str, pan: str, auxReceives: str, trackNotes: str):
+        self.name = name
+        self.trackNum = trackNum
+        self.mainSend = mainSend
+        self.vol = vol
+        self.pan = pan
+        self.auxReceives = auxReceives
+        self.items = {}
+        self.plugins = {}
+        self.trackNotes = trackNotes
+
+    def addItem(self, item: Item):
+        self.items[item.itemNum] = item
+
+    def addPlugin(self, plugin: Plugin):
+        self.plugins[plugin.pluginNum] = plugin
+
+    def getTrackDetails(self):
+        return [self.trackNum, self.name]
+
+    def getItems(self):
+        return self.items
+
+    def getPlugins(self):
+        return self.plugins
+
+    def print(self, pdf: MyPDF, dh: float):
+        pdf.writeStr('Track %d: %s' % (self.trackNum, self.name), 2.0, 0.5, setx=0.5, style='B', size=12)
+        pdf.writeStr('Main send', 1.0, dh, setx=0.75, size=10, ln=0)
+        pdf.writeStr('Vol', 1.5, dh, ln=0)
+        pdf.writeStr('Pan', 1.5, dh, ln=0)
+        pdf.writeStr('Aux Receives', 1.75, dh)
+        pdf.writeStr(self.mainSend, 1.0, dh, setx=0.75, style='', ln=0)
+        pdf.writeStr(self.vol, 1.5, dh, ln=0)
+        pdf.writeStr(self.pan, 1.5, dh, ln=0)
+        pdf.writeStr(self.auxReceives, 1.75, dh)
+        if len(self.trackNotes) > 0:
+            pdf.writeStr('Notes', 1.0, dh, setx=0.75)
+            pdf.writeStr(self.trackNotes, 2.0, 3.0, align='T', setx=0.75)
+        items = self.items.values()
+        if len(items) > 0:
+            pdf.writeStr('Item Name', 2.0, dh, setx=0.75, size=10, style='B', ln=0)
+            pdf.writeStr('Source', 1.0, dh, ln =0)
+            pdf.writeStr('Position', 1.5, dh, ln=0)
+            pdf.writeStr('File', 2.0, dh)
+            pdf.setFont(size=8)
+            for item in items:
+                item.print(pdf, dh)
+        plugins = self.plugins.values()
+        if len(plugins) > 0:
+            pdf.writeStr('Plugin Name', 3.0, dh, setx=0.75, style='B', size=10, ln=0)
+            pdf.writeStr('File', 1.75, dh, ln=0)
+            pdf.writeStr('Preset', 2.0, dh)
+            pdf.setFont(style='', size=8)
+            for plugin in plugins:
+                plugin.print(pdf, dh)
 
 
-def showTracks(table, pnum):
-    if pnum not in trackTableData:
+class Project:
+    def __init__(self, projectNum: int, name: str, take: str, date: str, location: str,
+                 tempo: str, recordPath: str, sampleRate: str, projectNotes: str):
+        self.projectNum = projectNum
+        self.name = name
+        self.take = take
+        self.date = date
+        self.location = location
+        self.recordPath = recordPath
+        self.tempo = tempo
+        self.sampleRate = sampleRate
+        self.projectNotes = projectNotes
+        self.tracks = {}
+
+    def addTrack(self, track: Track):
+        self.tracks[track.trackNum] = track
+
+    def getTrack(self, trackNum: int):
+        return self.tracks[trackNum]
+
+    def getTracks(self):
+        return self.tracks
+
+    def getProjectDetails(self):
+        return [self.name, self.take, self.date]
+
+    def print(self):
+        pdf = MyPDF()
+        pdf.add_page()
+        dh = 0.25
+        pdf.writeStr(self.name, 7.5, 0.5, align='C', color=(220, 50, 50), size=18)
+        pdf.writeStr('Take %s on %s' % (self.take, self.date), 7.5, 0.5, align='C', size=14)
+        pdf.writeStr('Location: %s' % self.location, 3.5, dh, color=(0, 0, 0), size=10, style='B')
+        pdf.writeStr('Tempo: %s' % self.tempo, 3.5, dh)
+        pdf.writeStr('Sample Rate: %s' % self.sampleRate, 3.5, dh)
+        pdf.writeStr('Record Path: %s' % self.recordPath, 3.5, dh)
+        if len(self.projectNotes) > 0:
+            pdf.writeStr('Notes', 1.0, dh, size=12)
+            pdf.setFont(size=10, style='')
+            for note in self.projectNotes.split('\n'):
+                pdf.writeStr(note, 7.0, dh, setx=0.75)
+        for track in self.tracks.values():
+            track.print(pdf, dh)
+        f = sg.popup_get_text("type a path to save the PDF file")
+        pdf.output(f + '/%s.pdf' % self.name, 'F')
+
+
+class Projects:
+    def __init__(self):
+        self.projects = []  # a list by row number
+        self.maxProjectNum = 0
+
+    def addProject(self, project: Project):
+        self.projects.append(project)
+
+    def getProject(self, rowNum: int):
+        return self.projects[rowNum]
+
+    def getProjects(self):
+        return self.projects
+
+    def findProjectNum(self, projectNum: int):
+        for project in self.projects:
+            if project.projectNum == projectNum:
+                return project
+        return None
+
+    def findProject(self, project: Project):
+        for p in self.projects:
+            if project.getProjectDetails() == p.getProjectDetails():
+                return p
+        return None
+
+    def deleteProject(self, pnum: int):
+        for p in self.projects:
+            if p.projectNum == pnum:
+                self.projects.remove(p)
+                return
+
+
+def newShowTracks(table, project):
+    if project is None:
         table.update([])
     else:
-        data = []
-        keys = sorted(trackTableData[pnum].keys())
-        for n in range(0, len(keys)):
-            data.append([n + 1] + list(trackTableData[pnum][keys[n]][0:2]))
-        table.update(data)
+        tracks = project.getTracks()
+        table.update([track.getTrackDetails() for track in tracks.values()])
 
 
-def showItems(table, pnum, tnum):
-    if pnum not in itemTableData or tnum not in itemTableData[pnum]:
+def newShowItems(table, track: Track):
+    if track is None:
         table.update([])
     else:
-        table.update(itemTableData[pnum][tnum].values())
+        table.update([item.getItemDetails() for item in track.getItems().values()])
 
 
-def showPlugins(table, pnum, tnum):
-    if pnum not in pluginTableData or tnum not in pluginTableData[pnum]:
+def newShowPlugins(table, track: Track):
+    if track is None:
         table.update([])
     else:
-        table.update(pluginTableData[pnum][tnum].values())
-
-
-def update(textElem, pnum, n):
-    textElem.update(projectTableData[pnum][n])
+        table.update([plugin.getPluginDetails() for plugin in track.getPlugins().values()])

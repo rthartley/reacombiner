@@ -1,0 +1,60 @@
+Metadata-Version: 2.1
+Name: pysqlite3tool
+Version: 0.0.1a0
+Summary: The cross-platform tool to work with SQLite3 database
+Home-page: https://github.com/c-pher/SQLite3Tool.git
+Author: Andrey Komissarov
+Author-email: a.komisssarov@gmail.com
+License: MIT
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Intended Audience :: System Administrators
+Classifier: Intended Audience :: Developers
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Topic :: System :: Systems Administration
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+
+[![PyPI version](https://badge.fury.io/py/SQLiteTool.svg)](https://badge.fury.io/py/SQLiteTool)
+[![Build Status](https://travis-ci.org/c-pher/SQLiteTool.svg?branch=master)](https://travis-ci.org/c-pher/SQLiteTool)
+
+# SQLiteTool
+The cross-platform sqlite3 based tool to work with SQLite database.
+
+SQLiteTool can:
+- Execute custom SQL query
+- Select (returns list)
+- Delete
+- Insert
+- Insert many
+- Create database (not implemented)
+- Update database (not implemented)
+- Get cursor to access to low-level original sqlite3 methods.  
+
+## Installation
+For most users, the recommended method to install is via pip:
+```cmd
+pip install psqlite
+```
+## Import
+```python
+from pysqlite3tool import SQLiteTool
+```
+
+## Helpful predefined methods
+
+* insert
+* select
+* delete
+
+...
+-
+
+## CHANGELOG
+- 0.0.1a (8.01.2020) Initial commit. The first alpha
+
+
