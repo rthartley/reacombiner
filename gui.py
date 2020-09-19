@@ -1,7 +1,7 @@
+import os
 import subprocess
 from pathlib import PurePath
-
-from fpdf import FPDF
+from subprocess import CalledProcessError, STDOUT, check_output
 
 from data import Projects, Project, Track, Item, Plugin
 
@@ -241,7 +241,8 @@ def showMyWindow(projects: Projects):
                 row = values['PROJECTS'][0]
                 project = projects.getProject(row)
                 path = PurePath(project.location, project.name, project.take + '.rpp')
-                subprocess.call(['C:/Program Files/REAPER (x64)/reaper.exe', str(path)])
+                env = os.environ.copy()
+                subprocess.Popen(['reaper.exe', str(path)], env=env)
             else:
                 sg.popup_error('First select a project to run')
         elif event == 'Add Project':
