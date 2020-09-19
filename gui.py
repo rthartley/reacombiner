@@ -242,7 +242,7 @@ def showMyWindow(projects: Projects):
                 project = projects.getProject(row)
                 path = PurePath(project.location, project.name, project.take + '.rpp')
                 env = os.environ.copy()
-                subprocess.Popen(['reaper.exe', str(path)], env=env)
+                subprocess.Popen(['reaper', str(path)], env=env)
             else:
                 sg.popup_error('First select a project to run')
         elif event == 'Add Project':
