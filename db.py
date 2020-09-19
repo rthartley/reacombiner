@@ -183,6 +183,14 @@ def loadProjects():
         tempTrack3 = tempProject3.getTrack(plugin[2])
         tempPlugin3 = data.Plugin(plugin[3], plugin[4], plugin[5], plugin[6])
         tempTrack3.addPlugin(tempPlugin3)
+    for project in tempProjects.getProjects():
+        tracks = project.tracks
+        for track in tracks.values():
+            recvs = track.auxReceives.split(',')
+            for recv in recvs:
+                if recv == '':
+                    continue
+                tracks[int(recv) + 1].addSend(str(track.trackNum))
     return tempProjects
 
 

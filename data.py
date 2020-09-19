@@ -86,9 +86,13 @@ class Track:
         self.vol = vol
         self.pan = pan
         self.auxReceives = auxReceives
+        self.sends = []
         self.items = {}
         self.plugins = {}
         self.trackNotes = trackNotes
+
+    def addSend(self, num: int):
+        self.sends.append(num)
 
     def addItem(self, item: Item):
         self.items[item.itemNum] = item
@@ -110,11 +114,13 @@ class Track:
         pdf.writeStr('Main send', 1.0, dh, setx=indent, size=10, ln=0)
         pdf.writeStr('Vol', 1.5, dh, ln=0)
         pdf.writeStr('Pan', 1.5, dh, ln=0)
-        pdf.writeStr('Aux Receives', 1.75, dh)
-        pdf.writeStr('Yes' if self.mainSend == 1 else 'No', 1.0, dh, setx=indent, style='', ln=0)
+        pdf.writeStr('Aux Receives', 1.5, dh, ln=0)
+        pdf.writeStr('Sends', 1.5, dh)
+        pdf.writeStr('Yes' if self.mainSend == '1' else 'No', 1.0, dh, setx=indent, style='', ln=0)
         pdf.writeStr(self.vol, 1.5, dh, ln=0)
         pdf.writeStr(self.pan, 1.5, dh, ln=0)
-        pdf.writeStr("None" if self.auxReceives == '' else self.auxReceives, 1.75, dh)
+        pdf.writeStr("None" if self.auxReceives == '' else self.auxReceives, 1.5, dh, ln=0)
+        pdf.writeStr('None' if len(self.sends) == 0 else ','.join(self.sends), 1.5, dh)
         if len(self.trackNotes) > 0:
             pdf.writeStr('Notes', 1.0, dh, setx=indent)
             pdf.writeStr(self.trackNotes, 2.0, 3.0, align='T', setx=indent)
@@ -187,7 +193,7 @@ class Project:
         try:
             pdf.output(f + '/%s.pdf' % self.name, 'F')
             lastBrowseDir = f
-        except RuntimeError:
+        except (PermissionError, RuntimeError):
             sg.popup_error('Could not write to file')
 
 
