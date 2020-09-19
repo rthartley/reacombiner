@@ -1,7 +1,6 @@
 import os
 import string
 
-import db
 import PySimpleGUI as sg
 from fpdf import FPDF
 
@@ -144,11 +143,11 @@ class Track:
 
 
 class Project:
-    def __init__(self, projectNum: int, name: str, take: str, date: str, location: str,
+    def __init__(self, projectNum: int, name: str, mix: str, date: str, location: str,
                  tempo: str, recordPath: str, sampleRate: str, projectNotes: str):
         self.projectNum = projectNum
         self.name = name
-        self.take = take
+        self.mix = mix
         self.date = date
         self.location = location
         self.recordPath = recordPath
@@ -167,7 +166,21 @@ class Project:
         return self.tracks
 
     def getProjectDetails(self):
-        return [self.name, self.take, self.date]
+        return [self.name, self.mix, self.date]
+
+    def printPlugins(self, pdf: MyPDF, dh: float):
+        pdf.writeStr('Plugins:', 3.5, dh)
+        pluginNames = {}
+        for track in self.tracks.values():
+            tp = track.getPlugins()
+            for pl in tp.values():
+                name = pl.name
+                if name not in pluginNames:
+                    pluginNames[name] = 1
+                else:
+                    pluginNames[name] = pluginNames[name] + 1
+        for pn, n in pluginNames.items():
+            pdf.writeStr(pn if n == 1 else pn + ' (%s)' % str(n), 3.5, dh, setx=0.6)
 
     def print(self):
         global lastBrowseDir
@@ -176,11 +189,12 @@ class Project:
         dh = 0.2
         indent = 0.6
         pdf.writeStr(self.name, 7.5, 0.5, align='C', color=(220, 50, 50), size=18)
-        pdf.writeStr('Take %s on %s' % (self.take, self.date), 7.5, 0.5, align='C', size=14)
+        pdf.writeStr('Mix %s on %s' % (self.mix, self.date), 7.5, 0.5, align='C', size=14)
         pdf.writeStr('Location: %s' % self.location, 3.5, dh, color=(0, 0, 0), size=10, style='B')
         pdf.writeStr('Tempo: %s' % self.tempo, 3.5, dh)
         pdf.writeStr('Sample Rate: %s' % self.sampleRate, 3.5, dh)
-        pdf.writeStr('Record Path: %s' % self.recordPath, 3.5, dh)
+        pdf.writeStr('Tracks: %d' % len(self.tracks), 3.5, dh)
+        self.printPlugins(pdf, dh)
         if len(self.projectNotes) > 0:
             pdf.writeStr('Notes', 1.0, dh, size=12)
             pdf.setFont(size=10, style='')
@@ -191,8 +205,10 @@ class Project:
             f = ''
         f = browseDir()
         try:
-            pdf.output(f + '/%s.pdf' % self.name, 'F')
+            path = f + '/%s.pdf' % self.name
+            pdf.output(path, 'F')
             lastBrowseDir = f
+            sg.popup_ok('Printing finished to ' + path)
         except (PermissionError, RuntimeError):
             sg.popup_error('Could not write to file')
 

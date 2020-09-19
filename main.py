@@ -1,4 +1,3 @@
-import rppFile
 import gui
 import db
 

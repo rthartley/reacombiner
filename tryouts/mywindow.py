@@ -8,7 +8,7 @@ menu_def = [['File', ['Add Project', 'DeleteProject', 'Print Project', 'Exit']],
             ['Run', ['Run Reaper']],
             ['Help', 'About...'], ]
 
-projectTableHeadings = ['Project', 'Take', 'Last Modified']
+projectTableHeadings = ['Project', 'Mix', 'Last Modified']
 projectTableHeader = [[sg.Text(h, size=(15, 1)) for h in projectTableHeadings]]
 projectTableInputRows = [[sg.Input(size=(15, 1), pad=(0, 0)) for col in range(3)] for row in range(10)]
 projectTexts = [[sg.Text('Location', justification='r', pad=((0, 10), (15, 5))), sg.InputText(size=(25, 1), pad=((0, 0), (15, 5)))],

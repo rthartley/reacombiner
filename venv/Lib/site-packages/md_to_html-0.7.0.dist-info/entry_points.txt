@@ -1,0 +1,3 @@
+[console_scripts]
+md-to-html = src.converter:main
+

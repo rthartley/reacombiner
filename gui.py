@@ -1,7 +1,9 @@
 import os
 import subprocess
+import webbrowser
 from pathlib import PurePath
-from subprocess import CalledProcessError, STDOUT, check_output
+
+import markdown
 
 from data import Projects, Project, Track, Item, Plugin
 
@@ -12,7 +14,7 @@ import rppFile
 import data
 
 sg.ChangeLookAndFeel('LightGreen')
-sg.SetOptions(element_padding=(0, 0))
+sg.SetOptions(element_padding=(5, 5))
 bg_color = "cadetblue"
 
 allProjects: Projects;
@@ -22,8 +24,7 @@ menu_def = [['File', ['Add Project', 'Delete Project', 'Print Project', 'Exit']]
             ['Run', ['Run Reaper']],
             ['Help', 'About...']]
 
-# projectTableHeadings = ['Project', 'Take', 'Last Modified']
-projectTableHeadings = [sg.Button('Project'), sg.Button('Take'), sg.Button('Last Modified')]
+projectTableHeadings = [sg.Button('Project'), sg.Button('Mix'), sg.Button('Last Modified')]
 projectTable = sg.Table([], auto_size_columns=False,
                         col_widths=[20, 12, 20], justification="left",
                         key='PROJECTS', num_rows=15, enable_events=True,
@@ -89,7 +90,7 @@ def newAddNewProject():
     projectFile = rppFile.openFile(fname[0])
     if projectFile is None:
         return
-#    rppFile.printStruct(projectFile)
+    #    rppFile.printStruct(projectFile)
     dtls = rppFile.getFileDetails(fname[0])
     dtls.append(projectFile.find('TEMPO')[1])
     dtls.append(projectFile.find('RECORD_PATH')[1])
@@ -107,7 +108,7 @@ def newAddNewProject():
         return
     pnum = db.addProject(dtls)
     allProjects.addProject(newProject)
-    projectTable.update([[project.name, project.take, project.date] for project in allProjects.getProjects()])
+    projectTable.update([[project.name, project.mix, project.date] for project in allProjects.getProjects()])
     tracks = projectFile.findall('TRACK')
     print('Project has %d tracks' % len(tracks))
     clearTables()
@@ -175,16 +176,16 @@ def deleteOldProject(pnum: int):
         db.deleteProject(pnum)
         allProjects.deleteProject(pnum)
         clearTables()
-        projectTable.update([[project.name, project.take, project.date] for project in allProjects.getProjects()])
+        projectTable.update([[project.name, project.mix, project.date] for project in allProjects.getProjects()])
 
 
 def createMyWindow():
-    global window
-    window = sg.Window("Windows-like program", layout, default_element_size=(12, 1),
+    global window0
+    window0 = sg.Window("Windows-like program", layout, default_element_size=(12, 1),
                        auto_size_text=False, auto_size_buttons=False,
                        default_button_element_size=(12, 1),
                        finalize=True, resizable=True)
-    window.Hide()
+    window0.Hide()
 
 
 def chunk(lst, upto):
@@ -210,14 +211,27 @@ def chunkStr(str, upto):
 
 
 def clearTables():
-    window.find_element('main_send').update('')
-    window.find_element('vol').update('')
-    window.find_element('pan').update('')
-    window.find_element('aux_recvs').update('')
-    window.find('file').update('')
+    window0.find_element('main_send').update('')
+    window0.find_element('vol').update('')
+    window0.find_element('pan').update('')
+    window0.find_element('aux_recvs').update('')
+    window0.find('file').update('')
     data.newShowTracks(trackTable, None)
     data.newShowItems(itemTable, None)
     data.newShowPlugins(pluginTable, None)
+
+
+def writeHtml():
+    with open("README.md", "r", encoding="utf-8") as input_file:
+        md = input_file.read()
+        _md = markdown.Markdown(output_format='html5')
+        html = _md.convert(md)
+        f = open("c:/Temp/readme.html", "w")
+        f.write(html)
+        f.close()
+        chrome_path = 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe'
+        webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
+        driver = webbrowser.get('chrome')
 
 
 def showMyWindow(projects: Projects):
@@ -225,6 +239,7 @@ def showMyWindow(projects: Projects):
     allProjects = projects
     projectTableData = [project.getProjectDetails() for project in projects.getProjects()]
     projectTable.update(projectTableData)
+    window = window0
     window.UnHide()
 
     # ------ Loop & Process button menu choices ------ #
@@ -234,13 +249,23 @@ def showMyWindow(projects: Projects):
             break
         # ------ Process menu choices ------ #
         if event == 'About...':
-            sg.popup('About this program', 'Version 1.0', 'PySimpleGUI rocks...')
+            with open("README.txt", "r", encoding="utf-8") as input_file:
+                layout = [[sg.Multiline(input_file.read(), size=(80, 25), autoscroll=True, key='_OUTPUT_')],
+                          [sg.Button('OK', key='_OK_')]]
+                window1 = sg.Window('Help').Layout(layout)
+                window.Hide()
+                window = window1
+                window1.Read(timeout=0)
+        elif event == '_OK_':
+            window.Hide()
+            window = window0
+            window0.UnHide()
         elif event == 'Run Reaper':
             print(event)
             if len(values['PROJECTS']) > 0:
                 row = values['PROJECTS'][0]
                 project = projects.getProject(row)
-                path = PurePath(project.location, project.name, project.take + '.rpp')
+                path = PurePath(project.location, project.name, project.mix + '.rpp')
                 env = os.environ.copy()
                 subprocess.Popen(['reaper', str(path)], env=env)
             else:
@@ -313,4 +338,3 @@ def showMyWindow(projects: Projects):
             print(event, values)
     window.close()
     db.close()
-
