@@ -33,13 +33,6 @@ def openFile(fn):
             return projectFile
 
 
-def browseFile():
-    event, values = sg.Window('Open RPP file',
-                              [[sg.Text('Document to open')],
-                               [sg.In(), sg.FileBrowse()],
-                               [sg.Open(), sg.Cancel()]]).read(close=True)
-    return values
-
 
 def getFileDetails(fname):
     ct = time.ctime(os.path.getmtime(fname))

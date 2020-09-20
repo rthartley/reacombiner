@@ -4,21 +4,21 @@ import string
 import PySimpleGUI as sg
 from fpdf import FPDF
 
+import file_utils
+
 allProjects = None
-lastBrowseDir = ''
-
-
-def browseDir():
-    event, values = sg.Window('Destination folder',
-                              [[sg.Text('Folder to open')],
-                               [sg.In(lastBrowseDir), sg.FolderBrowse()],
-                               [sg.Open(), sg.Cancel()]]).read(close=True)
-    return values[0]
 
 
 class MyPDF(FPDF):
     def __init__(self):
         super().__init__('P', 'in', 'Letter')
+        from tkinter import font
+        import tkinter
+        root = tkinter.Tk()
+        fonts = list(font.families())
+        fonts.sort()
+        root.destroy()
+
         self.fontName = 'Arial'
         self.fontStyle = ''
         self.fontSize = 12
@@ -183,7 +183,6 @@ class Project:
             pdf.writeStr(pn if n == 1 else pn + ' (%s)' % str(n), 3.5, dh, setx=0.6)
 
     def print(self):
-        global lastBrowseDir
         pdf = MyPDF()
         pdf.add_page()
         dh = 0.2
@@ -203,11 +202,11 @@ class Project:
         for track in self.tracks.values():
             track.print(pdf, dh, indent)
             f = ''
-        f = browseDir()
+        f = file_utils.browseDir('Destination')
         try:
             path = f + '/%s.pdf' % self.name
             pdf.output(path, 'F')
-            lastBrowseDir = f
+            file_utils.lastBrowseDir = f
             sg.popup_ok('Printing finished to ' + path)
         except (PermissionError, RuntimeError):
             sg.popup_error('Could not write to file')

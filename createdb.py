@@ -1,6 +1,7 @@
 import db
+from main import getHome
 
-db.createConnection('C:/Users/Roger.AMD-ONE/sqlitedb')
+db.createConnection(getHome().replace('\\', '/') + '/sqlitedb')
 db.dropTables()
 db.createTables()
 db.close()

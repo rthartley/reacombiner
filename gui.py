@@ -5,6 +5,7 @@ from pathlib import PurePath
 
 import markdown
 
+import file_utils
 from data import Projects, Project, Track, Item, Plugin
 
 import PySimpleGUI as sg
@@ -85,7 +86,7 @@ layout = [
 
 
 def newAddNewProject():
-    fname = rppFile.browseFile()
+    fname = file_utils.browseFile()
     print(fname[0])
     projectFile = rppFile.openFile(fname[0])
     if projectFile is None:
@@ -219,19 +220,6 @@ def clearTables():
     data.newShowTracks(trackTable, None)
     data.newShowItems(itemTable, None)
     data.newShowPlugins(pluginTable, None)
-
-
-def writeHtml():
-    with open("README.md", "r", encoding="utf-8") as input_file:
-        md = input_file.read()
-        _md = markdown.Markdown(output_format='html5')
-        html = _md.convert(md)
-        f = open("c:/Temp/readme.html", "w")
-        f.write(html)
-        f.close()
-        chrome_path = 'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe'
-        webbrowser.register('chrome', None, webbrowser.BackgroundBrowser(chrome_path))
-        driver = webbrowser.get('chrome')
 
 
 def showMyWindow(projects: Projects):
