@@ -2,6 +2,7 @@ import os
 import subprocess
 import webbrowser
 from pathlib import PurePath
+from time import strptime, mktime
 
 import markdown
 
@@ -30,6 +31,10 @@ projectTable = sg.Table([], auto_size_columns=False,
                         col_widths=[20, 12, 20], justification="left",
                         key='PROJECTS', num_rows=15, enable_events=True,
                         headings=[b.get_text() for b in projectTableHeadings])
+projectSorts = [[sg.Text('Sort by', justification='r'),
+                 sg.Radio('Name', 'sort', default=True, size=(12, 1), key='-SORT-NAME-', enable_events=True),
+                 sg.Radio('Mix', 'sort', size=(12, 1), key='-SORT-MIX-', enable_events=True),
+                 sg.Radio('Date', 'sort', size=(12, 1), key='-SORT-DATE-', enable_events=True)]]
 projectTexts = [
     [sg.Text('Location', justification='r', pad=((0, 10), (15, 5))),
      sg.Text(size=(45, 2), key='location', auto_size_text=True, background_color=bg_color, pad=((0, 0), (15, 5)))],
@@ -43,7 +48,7 @@ projectTexts = [
               [[sg.Text(size=(40, 10),
                         key='project_notes', auto_size_text=True, background_color=bg_color)]], pad=((0, 0), (15, 15)),
               )]]
-projectTableLayout = [[projectTable]] + projectTexts
+projectTableLayout = [[projectTable]] + projectSorts + projectTexts
 
 trackTableHeadings = ['Num', 'Track Name']
 trackTable = sg.Table([], max_col_width=15, auto_size_columns=False, num_rows=15,
@@ -222,6 +227,12 @@ def clearTables():
     data.newShowPlugins(pluginTable, None)
 
 
+def epochSecs(dt: str):
+    t = strptime(dt)
+    return mktime(t)
+
+
+
 def showMyWindow(projects: Projects):
     global allProjects
     allProjects = projects
@@ -322,6 +333,21 @@ def showMyWindow(projects: Projects):
                 track = tracks[trackNum]
                 irow = values['ITEMS'][0]
                 window.find_element('file').update(chunkStr(track.getItems()[irow].file, 50))
+        elif event == '-SORT-NAME-':
+            sps = sorted(allProjects.getProjects(), key=lambda proj: proj.name)
+            allProjects.projects = sps
+            projectTable.update([[p.name, p.mix, p.date] for p in sps])
+            clearTables()
+        elif event == '-SORT-MIX-':
+            sps = sorted(allProjects.getProjects(), key=lambda proj: proj.mix)
+            projectTable.update([[p.name, p.mix, p.date] for p in sps])
+            allProjects.projects = sps
+            clearTables()
+        elif event == '-SORT-DATE-':
+            sps = sorted(allProjects.getProjects(), key=lambda proj: epochSecs(proj.date))
+            projectTable.update([[p.name, p.mix, p.date] for p in sps])
+            allProjects.projects = sps
+            clearTables()
         else:
             print(event, values)
     window.close()

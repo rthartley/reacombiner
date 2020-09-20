@@ -6,9 +6,6 @@ from fpdf import FPDF
 
 import file_utils
 
-allProjects = None
-
-
 class MyPDF(FPDF):
     def __init__(self):
         super().__init__('P', 'in', 'Letter')
