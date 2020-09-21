@@ -19,5 +19,4 @@ def getHome():
 if __name__ == '__main__':
     db.createConnection(getHome().replace('\\', '/') + '/sqlitedb')
     gui.createMyWindow()
-    tempProjects = db.loadProjects()
-    gui.showMyWindow(tempProjects)
+    gui.showMyWindow(db.loadProjects())

@@ -114,7 +114,7 @@ def newAddNewProject():
         return
     pnum = db.addProject(dtls)
     allProjects.addProject(newProject)
-    projectTable.update([[project.name, project.mix, project.date] for project in allProjects.getProjects()])
+    updateProjects(sorted(allProjects.getProjects(), key=lambda proj: proj.name))
     tracks = projectFile.findall('TRACK')
     print('Project has %d tracks' % len(tracks))
     clearTables()
@@ -233,16 +233,16 @@ def epochSecs(dt: str):
 
 
 def updateProjects(sps: list):
+    global allProjects
     allProjects.projects = sps
-    projectTable.update([[p.name, p.mix, p.date] for p in sps])
+    projectTable.update([p.getProjectDetails() for p in sps])
     clearTables()
 
 
 def showMyWindow(projects: Projects):
     global allProjects
-    allProjects = projects
-    projectTableData = [project.getProjectDetails() for project in projects.getProjects()]
-    projectTable.update(projectTableData)
+    allProjects = Projects()
+    updateProjects(sorted(projects.getProjects(), key=lambda proj: proj.name))
     window = window0
     window.UnHide()
 
