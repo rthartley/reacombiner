@@ -1,10 +1,7 @@
 import os
 import subprocess
-import webbrowser
 from pathlib import PurePath
 from time import strptime, mktime
-
-import markdown
 
 import file_utils
 from data import Projects, Project, Track, Item, Plugin
