@@ -232,6 +232,11 @@ def epochSecs(dt: str):
     return mktime(t)
 
 
+def updateProjects(sps: list):
+    allProjects.projects = sps
+    projectTable.update([[p.name, p.mix, p.date] for p in sps])
+    clearTables()
+
 
 def showMyWindow(projects: Projects):
     global allProjects
@@ -334,20 +339,11 @@ def showMyWindow(projects: Projects):
                 irow = values['ITEMS'][0]
                 window.find_element('file').update(chunkStr(track.getItems()[irow].file, 50))
         elif event == '-SORT-NAME-':
-            sps = sorted(allProjects.getProjects(), key=lambda proj: proj.name)
-            allProjects.projects = sps
-            projectTable.update([[p.name, p.mix, p.date] for p in sps])
-            clearTables()
+            updateProjects(sorted(allProjects.getProjects(), key=lambda proj: proj.name))
         elif event == '-SORT-MIX-':
-            sps = sorted(allProjects.getProjects(), key=lambda proj: proj.mix)
-            projectTable.update([[p.name, p.mix, p.date] for p in sps])
-            allProjects.projects = sps
-            clearTables()
+            updateProjects(sorted(allProjects.getProjects(), key=lambda proj: proj.mix))
         elif event == '-SORT-DATE-':
-            sps = sorted(allProjects.getProjects(), key=lambda proj: epochSecs(proj.date))
-            projectTable.update([[p.name, p.mix, p.date] for p in sps])
-            allProjects.projects = sps
-            clearTables()
+            updateProjects(sorted(allProjects.getProjects(), key=lambda proj: epochSecs(proj.date)))
         else:
             print(event, values)
     window.close()
