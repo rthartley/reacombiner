@@ -174,8 +174,9 @@ def newAddNewProject():
                 db.addPlugin([pnum, tnum, inum] + pluginDtls)
 
 
-def deleteOldProject(pnum: int):
+def deleteOldProject(project: Project):
     if 'OK' == sg.popup_ok_cancel(" Are you absolutely sure? - there is no undo"):
+        pnum = project.projectNum
         db.deleteProject(pnum)
         allProjects.deleteProject(pnum)
         clearTables()
@@ -184,7 +185,7 @@ def deleteOldProject(pnum: int):
 
 def createMyWindow():
     global window0
-    window0 = sg.Window("Windows-like program", layout, default_element_size=(12, 1),
+    window0 = sg.Window("ReaCombiner", layout, default_element_size=(12, 1),
                        auto_size_text=False, auto_size_buttons=False,
                        default_button_element_size=(12, 1),
                        finalize=True, resizable=True)
@@ -265,7 +266,7 @@ def showMyWindow(projects: Projects):
             print(event)
             if len(values['PROJECTS']) > 0:
                 row = values['PROJECTS'][0]
-                project = projects.getProject(row)
+                project = allProjects.getProject(row)
                 path = PurePath(project.location, project.name, project.mix + '.rpp')
                 env = os.environ.copy()
                 subprocess.Popen(['reaper', str(path)], env=env)
@@ -277,15 +278,15 @@ def showMyWindow(projects: Projects):
             print(event)
             if len(values['PROJECTS']) > 0:
                 row = values['PROJECTS'][0]
-                pnum = projects.getProject(row).projectNum
-                deleteOldProject(pnum)
+                project = allProjects.getProject(row)
+                deleteOldProject(project)
             else:
                 sg.popup_error('First select a project to run')
         elif event == 'Print Project':
             print(event)
             if len(values['PROJECTS']) > 0:
                 row = values['PROJECTS'][0]
-                project = projects.getProject(row)
+                project = allProjects.getProject(row)
                 project.print()
             else:
                 sg.popup_error('First select a project to run')
@@ -293,7 +294,7 @@ def showMyWindow(projects: Projects):
             print(values['PROJECTS'])
             if len(values['PROJECTS']) > 0:
                 row = values['PROJECTS'][0]
-                project = projects.getProject(row)
+                project = allProjects.getProject(row)
                 window.find_element('location').update(chunkStr(project.location, 50))  # 50 is text width
                 window.find_element('tempo').update(project.tempo)
                 window.find_element('record_path').update(
@@ -306,7 +307,7 @@ def showMyWindow(projects: Projects):
             print(values['TRACKS'])
             if len(values['PROJECTS']) > 0 and len(values['TRACKS']) > 0:
                 prow = values['PROJECTS'][0]
-                project = projects.getProject(row)
+                project = allProjects.getProject(row)
                 trow = values['TRACKS'][0]
                 tracks = project.getTracks()
                 trackNum = trackTable.get()[trow][0]
@@ -328,7 +329,7 @@ def showMyWindow(projects: Projects):
             print(values['ITEMS'])
             if len(values['PROJECTS']) > 0 and len(values['TRACKS']) > 0 and len(values['ITEMS']) > 0:
                 prow = values['PROJECTS'][0]
-                project = projects.getProject(row)
+                project = allProjects.getProject(row)
                 trow = values['TRACKS'][0]
                 tracks = project.getTracks()
                 trackNum = trackTable.get()[trow][0]

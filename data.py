@@ -37,7 +37,7 @@ class MyPDF(FPDF):
             self.set_x(setx)
         if color is not None:
             self.set_text_color(*color)
-        self.cell(w=width, h=height, align=align, txt=str, border=border, ln=ln)
+        self.cell(w=width, h=height, align=align, txt=str.encode(encoding='ascii', errors='backslashreplace').decode(), border=border, ln=ln)
 
 
 class Plugin:
