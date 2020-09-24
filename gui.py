@@ -91,7 +91,7 @@ layout = [
 
 def newAddNewProject():
     fname = file_utils.browseFile()
-    print(fname[0])
+    #    print(fname[0])
     projectFile = rppFile.openFile(fname[0])
     if projectFile is None:
         return
@@ -115,7 +115,7 @@ def newAddNewProject():
     allProjects.addProject(newProject)
     updateProjects(sorted(allProjects.getProjects(), key=lambda proj: proj.name))
     tracks = projectFile.findall('TRACK')
-    print('Project has %d tracks' % len(tracks))
+    # print('Project has %d tracks' % len(tracks))
     clearTables()
     for n in range(0, len(tracks)):
         track = tracks[n]
@@ -154,7 +154,7 @@ def newAddNewProject():
                 item = items[inum]
                 if isinstance(item, list) and item[0] == 'PRESETNAME' and vst is not None:
                     preset = item[1]
-                    print('PRESETNAME=' + item[1] + ' goes with VST ' + str(vst))
+                    # print('PRESETNAME=' + item[1] + ' goes with VST ' + str(vst))
                     pluginDtls = [vst[0], vst[1], item[1]]
                     newPlugin = data.Plugin(inum, pluginDtls[0], pluginDtls[1], pluginDtls[2])
                     newTrack.addPlugin(newPlugin)
@@ -168,7 +168,7 @@ def newAddNewProject():
                             newTrack.addPlugin(newPlugin)
                             db.addPlugin([pnum, tnum, inum] + pluginDtls)
                         vst = item.attrib[0:2]
-                        print('VST=' + str(vst))
+                        # print('VST=' + str(vst))
             if vst is not None:
                 pluginDtls = [vst[0], vst[1], '']
                 newPlugin = data.Plugin(inum, pluginDtls[0], pluginDtls[1], pluginDtls[2])
@@ -276,7 +276,7 @@ def showMyWindow(projects: Projects):
             window = window0
             window0.UnHide()
         elif event == 'Run Reaper':
-            print(event)
+            # print(event)
             if len(values['PROJECTS']) > 0:
                 row = values['PROJECTS'][0]
                 project = allProjects.getProject(row)
@@ -288,7 +288,7 @@ def showMyWindow(projects: Projects):
         elif event == 'Add Project':
             newAddNewProject()
         elif event == 'Delete Project':
-            print(event)
+            # print(event)
             if len(values['PROJECTS']) > 0:
                 row = values['PROJECTS'][0]
                 project = allProjects.getProject(row)
@@ -304,7 +304,7 @@ def showMyWindow(projects: Projects):
             else:
                 sg.popup_error('First select a project to run')
         elif event == 'PROJECTS':
-            print(values['PROJECTS'])
+            # print(values['PROJECTS'])
             if len(values['PROJECTS']) > 0:
                 row = values['PROJECTS'][0]
                 project = allProjects.getProject(row)
@@ -317,7 +317,7 @@ def showMyWindow(projects: Projects):
                 clearTables()
                 data.newShowTracks(trackTable, project)
         elif event == 'TRACKS':
-            print(values['TRACKS'])
+            # print(values['TRACKS'])
             if len(values['PROJECTS']) > 0 and len(values['TRACKS']) > 0:
                 prow = values['PROJECTS'][0]
                 project = allProjects.getProject(row)
@@ -339,7 +339,7 @@ def showMyWindow(projects: Projects):
                 data.newShowItems(itemTable, track)
                 data.newShowPlugins(pluginTable, track)
         elif event == 'ITEMS':
-            print(values['ITEMS'])
+            # print(values['ITEMS'])
             if len(values['PROJECTS']) > 0 and len(values['TRACKS']) > 0 and len(values['ITEMS']) > 0:
                 prow = values['PROJECTS'][0]
                 project = allProjects.getProject(row)
@@ -352,6 +352,7 @@ def showMyWindow(projects: Projects):
         elif event == '-SORT-NAME-' or event == '-SORT-MIX-' or event == '-SORT-DATE-' or event == '-SORT-UP-' or event == '-SORT-DOWN-':
             sortProjects(values)
         else:
-            print(event, values)
+            #print(event, values)
+            sg.popup_error("Got an unknown event " + str(event))
     window.close()
     db.close()

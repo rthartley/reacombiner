@@ -1,6 +1,6 @@
 import sqlite3
 from sqlite3 import Error
-import gui
+import PySimpleGUI as sg
 import data
 
 conn = None
@@ -64,9 +64,10 @@ def createConnection(db_file):
     global conn
     try:
         conn = sqlite3.connect(db_file)
-        print(sqlite3.version)
+        # print(sqlite3.version)
     except Error as e:
-        print(e)
+        # print(e)
+        sg.popup_error('Could not contact database - quitting')
     return conn
 
 
@@ -75,7 +76,8 @@ def createTable(create_table_sql):
         c = conn.cursor()
         c.execute(create_table_sql)
     except Error as e:
-        print(e)
+        sg.popup_error('Error creating table: ' + str(e))
+        # print(e)
 
 
 def dropTables():

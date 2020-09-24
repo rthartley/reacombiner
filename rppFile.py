@@ -6,20 +6,20 @@ import PySimpleGUI as sg
 from pathlib import Path, PurePosixPath
 
 
-def printStructR(children, indent):
-    for child in children:
-        if isinstance(child, sg.Element):
-            print("%sElement %s %s" % ((" " * indent), child.tag, child.attrib))
-            gc = child.findall('*')
-            printStructR(gc, indent + 3)
-        else:
-            print("%s%s" % ((" " * indent), child))
+#def printStructR(children, indent):
+#    for child in children:
+#        if isinstance(child, sg.Element):
+#            #           print("%sElement %s %s" % ((" " * indent), child.tag, child.attrib))
+#           gc = child.findall('*')
+#            printStructR(gc, indent + 3)
+#        #        else:
+#       #           print("%s%s" % ((" " * indent), child))
 
 
-def printStruct(struct):
-    children = struct.findall('*')
-    print("%s children" % len(struct))
-    printStructR(children, 0)
+#def printStruct(struct):
+#    children = struct.findall('*')
+#    print("%s children" % len(struct))
+#    printStructR(children, 0)
 
 
 def openFile(fn):
@@ -31,7 +31,6 @@ def openFile(fn):
                 sg.popup_error('Could not parse this file')
                 return None
             return projectFile
-
 
 
 def getFileDetails(fname):
