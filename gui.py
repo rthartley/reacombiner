@@ -28,10 +28,12 @@ projectTable = sg.Table([], auto_size_columns=False,
                         col_widths=[20, 12, 20], justification="left",
                         key='PROJECTS', num_rows=15, enable_events=True,
                         headings=[b.get_text() for b in projectTableHeadings])
-projectSorts = [[sg.Text('Sort by', justification='r'),
-                 sg.Radio('Name', 'sort', default=True, size=(12, 1), key='-SORT-NAME-', enable_events=True),
-                 sg.Radio('Mix', 'sort', size=(12, 1), key='-SORT-MIX-', enable_events=True),
-                 sg.Radio('Date', 'sort', size=(12, 1), key='-SORT-DATE-', enable_events=True)]]
+projectSorts = [[sg.Text('Sort by', size=(8, 1), justification='r'),
+                 sg.Radio('Name', 'sort', default=True, size=(6, 1), key='-SORT-NAME-', enable_events=True),
+                 sg.Radio('Mix', 'sort', size=(6, 1), key='-SORT-MIX-', enable_events=True),
+                 sg.Radio('Date', 'sort', size=(6, 1), key='-SORT-DATE-', enable_events=True),
+                 sg.Radio('A-Z', 'upordown', size=(4, 1), default=True, key='-SORT-UP-', enable_events=True),
+                 sg.Radio('Z-A', 'upordown', size=(4, 1), default=False, key='-SORT-DOWN-', enable_events=True)]]
 projectTexts = [
     [sg.Text('Location', justification='r', pad=((0, 10), (15, 5))),
      sg.Text(size=(45, 2), key='location', auto_size_text=True, background_color=bg_color, pad=((0, 0), (15, 5)))],
@@ -59,7 +61,7 @@ trackTexts = [[sg.Text('Main Send', justification='r', pad=((0, 10), (15, 5))),
                sg.Text(size=(10, 1), key='pan', background_color=bg_color, pad=((0, 0), (0, 5)))],
               [sg.Text('Aux Recvs', justification='r', pad=((0, 10), (0, 5))),
                sg.Text(size=(25, 5), key='aux_recvs', background_color=bg_color, pad=((0, 0), (0, 5)))],
-              [sg.Frame("Track Notes", [[sg.Text(size=(40, 8), key='track_notes', background_color=bg_color)]],
+              [sg.Frame("Track Notes", [[sg.Text(size=(40, 10), key='track_notes', background_color=bg_color)]],
                         pad=((0, 0), (15, 15)))]]
 trackTableLayout = [[trackTable]] + trackTexts
 
@@ -237,10 +239,21 @@ def updateProjects(sps: list):
     clearTables()
 
 
+def sortProjects(values: list):
+    if values['-SORT-NAME-']:
+        sortBy = lambda proj: proj.name.upper()
+    elif values['-SORT-MIX-']:
+        sortBy = lambda proj: proj.mix.upper()
+    else:
+        sortBy = lambda proj: epochSecs(proj.date)
+    updateProjects(
+        sorted(allProjects.getProjects(), key=sortBy, reverse=values['-SORT-DOWN-']))
+
+
 def showMyWindow(projects: Projects):
     global allProjects
     allProjects = Projects()
-    updateProjects(sorted(projects.getProjects(), key=lambda proj: proj.name))
+    updateProjects(sorted(projects.getProjects(), key=lambda proj: proj.name.upper()))
     window = window0
     window.UnHide()
 
@@ -336,12 +349,8 @@ def showMyWindow(projects: Projects):
                 track = tracks[trackNum]
                 irow = values['ITEMS'][0]
                 window.find_element('file').update(chunkStr(track.getItems()[irow].file, 50))
-        elif event == '-SORT-NAME-':
-            updateProjects(sorted(allProjects.getProjects(), key=lambda proj: proj.name))
-        elif event == '-SORT-MIX-':
-            updateProjects(sorted(allProjects.getProjects(), key=lambda proj: proj.mix))
-        elif event == '-SORT-DATE-':
-            updateProjects(sorted(allProjects.getProjects(), key=lambda proj: epochSecs(proj.date)))
+        elif event == '-SORT-NAME-' or event == '-SORT-MIX-' or event == '-SORT-DATE-' or event == '-SORT-UP-' or event == '-SORT-DOWN-':
+            sortProjects(values)
         else:
             print(event, values)
     window.close()
