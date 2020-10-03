@@ -2,6 +2,7 @@ import os
 import subprocess
 from pathlib import PurePath
 from time import strptime, mktime
+from typing import Union
 
 import file_utils
 from data import Projects, Project, Track, Item, Plugin
@@ -12,11 +13,13 @@ import db
 import rppFile
 import data
 
-sg.ChangeLookAndFeel('LightGreen')
+sg.theme('LightGreen')
 sg.SetOptions(element_padding=(5, 5))
 bg_color = "cadetblue"
 
-allProjects: Projects;
+allProjects: Projects = Projects()
+window: sg.Window
+window0: sg.Window
 
 # ------ Menu Definition ------ #
 menu_def = [['File', ['Add Project', 'Delete Project', 'Print Project', 'Exit']],
@@ -28,6 +31,7 @@ projectTable = sg.Table([], auto_size_columns=False,
                         col_widths=[20, 12, 20], justification="left",
                         key='PROJECTS', num_rows=15, enable_events=True,
                         headings=[b.get_text() for b in projectTableHeadings])
+# noinspection SpellCheckingInspection
 projectSorts = [[sg.Text('Sort by', size=(8, 1), justification='r'),
                  sg.Radio('Name', 'sort', default=True, size=(6, 1), key='-SORT-NAME-', enable_events=True),
                  sg.Radio('Mix', 'sort', size=(6, 1), key='-SORT-MIX-', enable_events=True),
@@ -70,7 +74,7 @@ itemTable = sg.Table([], auto_size_columns=False, num_rows=15, key='ITEMS', enab
                      col_widths=[25, 6, 20], justification="left", headings=itemTableHeadings)
 pluginTableHeadings = ['Name', 'File', 'Preset']
 pluginTable = sg.Table([], max_col_width=15, auto_size_columns=False, num_rows=15,
-                       col_widths=(24, 12, 12), key='PLUGINS', headings=pluginTableHeadings,
+                       col_widths=[24, 12, 12], key='PLUGINS', headings=pluginTableHeadings,
                        justification="left")
 pluginTableLayout = [[pluginTable]]
 itemTexts = [
@@ -89,7 +93,8 @@ layout = [
 ]
 
 
-def newAddNewProject():
+# noinspection SpellCheckingInspection
+def addNewProject():
     fname = file_utils.browseFile()
     #    print(fname[0])
     projectFile = rppFile.openFile(fname[0])
@@ -147,7 +152,6 @@ def newAddNewProject():
             db.addItem([pnum, tnum, inum] + itemDtls)
         fxchain = track.find('FXCHAIN')
         if fxchain is not None:
-            preset = None
             vst = None
             items = fxchain.find('.')
             for inum in range(0, len(items)):
@@ -155,25 +159,28 @@ def newAddNewProject():
                 if isinstance(item, list) and item[0] == 'PRESETNAME' and vst is not None:
                     preset = item[1]
                     # print('PRESETNAME=' + item[1] + ' goes with VST ' + str(vst))
-                    pluginDtls = [vst[0], vst[1], item[1]]
+                    pluginDtls = [vst[0], vst[1], preset]
                     newPlugin = data.Plugin(inum, pluginDtls[0], pluginDtls[1], pluginDtls[2])
                     newTrack.addPlugin(newPlugin)
                     db.addPlugin([pnum, tnum, inum] + pluginDtls)
                     vst = None
                 elif isinstance(item, rpp.element.Element):
-                    if item.tag == 'VST':
+                    if item.tag in data.pluginTypes:
                         if vst is not None:
                             pluginDtls = [vst[0], vst[1], '']
                             newPlugin = data.Plugin(inum, pluginDtls[0], pluginDtls[1], pluginDtls[2])
                             newTrack.addPlugin(newPlugin)
                             db.addPlugin([pnum, tnum, inum] + pluginDtls)
-                        vst = item.attrib[0:2]
+                        if item.tag == 'JS':
+                            vst = ['JS:' + item.attrib[0]] + item.attrib[1:2]
+                        else:
+                            vst = item.attrib[0:2]
                         # print('VST=' + str(vst))
             if vst is not None:
                 pluginDtls = [vst[0], vst[1], '']
-                newPlugin = data.Plugin(inum, pluginDtls[0], pluginDtls[1], pluginDtls[2])
+                newPlugin = data.Plugin(len(items), pluginDtls[0], pluginDtls[1], pluginDtls[2])
                 newTrack.addPlugin(newPlugin)
-                db.addPlugin([pnum, tnum, inum] + pluginDtls)
+                db.addPlugin([pnum, tnum, len(items)] + pluginDtls)
 
 
 def deleteOldProject(project: Project):
@@ -188,9 +195,9 @@ def deleteOldProject(project: Project):
 def createMyWindow():
     global window0
     window0 = sg.Window("ReaCombiner", layout, default_element_size=(12, 1),
-                       auto_size_text=False, auto_size_buttons=False,
-                       default_button_element_size=(12, 1),
-                       finalize=True, resizable=True)
+                        auto_size_text=False, auto_size_buttons=False,
+                        default_button_element_size=(12, 1),
+                        finalize=True, resizable=True)
     window0.Hide()
 
 
@@ -216,15 +223,16 @@ def chunkStr(str, upto):
     return ret
 
 
+# noinspection SpellCheckingInspection
 def clearTables():
     window0.find_element('main_send').update('')
     window0.find_element('vol').update('')
     window0.find_element('pan').update('')
     window0.find_element('aux_recvs').update('')
     window0.find('file').update('')
-    data.newShowTracks(trackTable, None)
-    data.newShowItems(itemTable, None)
-    data.newShowPlugins(pluginTable, None)
+    data.newShowTracks(trackTable)
+    data.newShowItems(itemTable)
+    data.newShowPlugins(pluginTable)
 
 
 def epochSecs(dt: str):
@@ -239,17 +247,30 @@ def updateProjects(sps: list):
     clearTables()
 
 
-def sortProjects(values: list):
+def projectNameUpper(project):
+    return project.name.upper
+
+
+def projectMixUpper(project):
+    return project.mix.upper()
+
+
+def projectEpochSecs(project):
+    return epochSecs(project.date)
+
+
+def sortProjects(values: dict):
     if values['-SORT-NAME-']:
-        sortBy = lambda proj: proj.name.upper()
+        sortBy = projectNameUpper
     elif values['-SORT-MIX-']:
-        sortBy = lambda proj: proj.mix.upper()
+        sortBy = projectMixUpper
     else:
-        sortBy = lambda proj: epochSecs(proj.date)
+        sortBy = projectEpochSecs
     updateProjects(
         sorted(allProjects.getProjects(), key=sortBy, reverse=values['-SORT-DOWN-']))
 
 
+# noinspection SpellCheckingInspection
 def showMyWindow(projects: Projects):
     global allProjects
     allProjects = Projects()
@@ -286,7 +307,7 @@ def showMyWindow(projects: Projects):
             else:
                 sg.popup_error('First select a project to run')
         elif event == 'Add Project':
-            newAddNewProject()
+            addNewProject()
         elif event == 'Delete Project':
             # print(event)
             if len(values['PROJECTS']) > 0:
@@ -325,7 +346,7 @@ def showMyWindow(projects: Projects):
                 tracks = project.getTracks()
                 trackNum = trackTable.get()[trow][0]
                 track = tracks[trackNum]
-                window.find_element('main_send').update(track.mainSend)
+                window.find_element('main_send').update('yes'if track.mainSend == "1" else 'no')
                 window.find_element('vol').update(track.vol)
                 window.find_element('pan').update(track.pan)
                 ar = window.find_element('aux_recvs')
@@ -352,7 +373,7 @@ def showMyWindow(projects: Projects):
         elif event == '-SORT-NAME-' or event == '-SORT-MIX-' or event == '-SORT-DATE-' or event == '-SORT-UP-' or event == '-SORT-DOWN-':
             sortProjects(values)
         else:
-            #print(event, values)
+            # print(event, values)
             sg.popup_error("Got an unknown event " + str(event))
     window.close()
     db.close()

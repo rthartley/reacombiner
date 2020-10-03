@@ -6,6 +6,7 @@ from fpdf import FPDF
 
 import file_utils
 
+
 class MyPDF(FPDF):
     def __init__(self):
         super().__init__('P', 'in', 'Letter')
@@ -37,7 +38,11 @@ class MyPDF(FPDF):
             self.set_x(setx)
         if color is not None:
             self.set_text_color(*color)
-        self.cell(w=width, h=height, align=align, txt=str.encode(encoding='ascii', errors='backslashreplace').decode(), border=border, ln=ln)
+        self.cell(w=width, h=height, align=align, txt=str.encode(encoding='ascii', errors='backslashreplace').decode(),
+                  border=border, ln=ln)
+
+
+pluginTypes = ['VST', 'VSTi', 'VST3', 'JS', 'REWIRE']
 
 
 class Plugin:
@@ -242,7 +247,7 @@ class Projects:
                 return
 
 
-def newShowTracks(table, project):
+def newShowTracks(table, project: Project = None):
     if project is None:
         table.update([])
     else:
@@ -250,14 +255,14 @@ def newShowTracks(table, project):
         table.update([track.getTrackDetails() for track in tracks.values()])
 
 
-def newShowItems(table, track: Track):
+def newShowItems(table, track: Track = None):
     if track is None:
         table.update([])
     else:
         table.update([item.getItemDetails() for item in track.getItems().values()])
 
 
-def newShowPlugins(table, track: Track):
+def newShowPlugins(table, track: Track = None):
     if track is None:
         table.update([])
     else:

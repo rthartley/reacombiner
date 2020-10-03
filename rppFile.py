@@ -6,31 +6,49 @@ import PySimpleGUI as sg
 from pathlib import Path, PurePosixPath
 
 
-#def printStructR(children, indent):
-#    for child in children:
-#        if isinstance(child, sg.Element):
-#            #           print("%sElement %s %s" % ((" " * indent), child.tag, child.attrib))
-#           gc = child.findall('*')
-#            printStructR(gc, indent + 3)
-#        #        else:
-#       #           print("%s%s" % ((" " * indent), child))
+def printStructR(children, indent):
+    """
+     Only used in testing
+    :param children: node children
+    :param indent: number of spaces
+    :return:
+    """
+    for child in children:
+        if isinstance(child, sg.Element):
+            print("%sElement %s %s" % ((" " * indent), child.tag, child.attrib))
+            gc = child.findall('*')
+            printStructR(gc, indent + 3)
+        else:
+            print("%s%s" % ((" " * indent), child))
 
 
-#def printStruct(struct):
-#    children = struct.findall('*')
-#    print("%s children" % len(struct))
-#    printStructR(children, 0)
+def printStruct(struct):
+    """
+    Only used in testing
+    :param struct: Whta is returned by rpp.load
+    :return:
+    """
+    children = struct.findall('*')
+    print("%s children" % len(struct))
+    printStructR(children, 0)
 
 
 def openFile(fn):
     if fn != '':
-        with open(fn, 'r') as file:
-            try:
-                projectFile = rpp.load(file)
-            except (UnicodeDecodeError, ValueError, RuntimeError):
-                sg.popup_error('Could not parse this file')
-                return None
-            return projectFile
+        try:
+            with open(fn, 'r') as file:
+                try:
+                    projectFile = rpp.load(file)
+                except (UnicodeDecodeError, ValueError, RuntimeError):
+                    sg.popup_error('Could not parse this file')
+                    return None
+                return projectFile
+        except IOError:
+            sg.popup_error('Could not open this file')
+            return None
+        except:
+            sg.popup_error("An unknown error occurred")
+            return None
 
 
 def getFileDetails(fname):
