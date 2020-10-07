@@ -18,8 +18,8 @@ sg.SetOptions(element_padding=(5, 5))
 bg_color = "cadetblue"
 
 allProjects: Projects = Projects()
-window: sg.Window
-window0: sg.Window
+window: sg.Window = None
+window0: sg.Window = None
 
 # ------ Menu Definition ------ #
 menu_def = [['File', ['Add Project', 'Delete Project', 'Print Project', 'Exit']],
@@ -248,7 +248,7 @@ def updateProjects(sps: list):
 
 
 def projectNameUpper(project):
-    return project.name.upper
+    return project.name.upper()
 
 
 def projectMixUpper(project):
@@ -268,6 +268,14 @@ def sortProjects(values: dict):
         sortBy = projectEpochSecs
     updateProjects(
         sorted(allProjects.getProjects(), key=sortBy, reverse=values['-SORT-DOWN-']))
+
+
+def close():
+    global window, window0
+    if window0 is not None:
+        window0.close()
+    window = None
+    window0 = None
 
 
 # noinspection SpellCheckingInspection
@@ -346,7 +354,7 @@ def showMyWindow(projects: Projects):
                 tracks = project.getTracks()
                 trackNum = trackTable.get()[trow][0]
                 track = tracks[trackNum]
-                window.find_element('main_send').update('yes'if track.mainSend == "1" else 'no')
+                window.find_element('main_send').update('yes' if track.mainSend == "1" else 'no')
                 window.find_element('vol').update(track.vol)
                 window.find_element('pan').update(track.pan)
                 ar = window.find_element('aux_recvs')
@@ -375,5 +383,5 @@ def showMyWindow(projects: Projects):
         else:
             # print(event, values)
             sg.popup_error("Got an unknown event " + str(event))
-    window.close()
+    close()
     db.close()
