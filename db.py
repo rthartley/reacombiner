@@ -3,6 +3,7 @@ import sqlite3
 from sqlite3 import Error
 import PySimpleGUI as sg
 import data
+import gui
 
 conn = None
 
@@ -61,7 +62,7 @@ def addProject(project):
         conn.commit()
         return cur.lastrowid
     except sqlite3.Error as e:
-        sg.popup_error("Could not add project")
+        gui.errorMsg("Could not add project")
         raise e
 
 
@@ -74,7 +75,7 @@ def addTrack(track):
         conn.commit()
         return cur.lastrowid
     except sqlite3.Error as e:
-        sg.popup_error("Could not add track")
+        gui.errorMsg("Could not add track")
         raise e
 
 
@@ -87,7 +88,7 @@ def addItem(item):
         conn.commit()
         return cur.lastrowid
     except sqlite3.Error as e:
-        sg.popup_error("Could not add item")
+        gui.errorMsg("Could not add item")
         raise e
 
 
@@ -100,7 +101,7 @@ def addPlugin(item):
         conn.commit()
         return cur.lastrowid
     except sqlite3.Error as e:
-        sg.popup_error("Could not add plugin")
+        gui.errorMsg("Could not add plugin")
         raise e
 
 
@@ -128,12 +129,12 @@ def createConnection(db_file):
         if os.path.isfile(db_file):
             conn = sqlite3.connect(db_file)
         else:
-            sg.popup_error('Could not find database file')
+            gui.errorMsg('Could not find database file')
             return None
         # print(sqlite3.version)
     except Error as e:
         # print(e)
-        sg.popup_error('Could not contact database - quitting')
+        gui.errorMsg('Could not contact database - quitting')
         return None
     return conn
 
@@ -143,20 +144,23 @@ def createTable(create_table_sql):
         c = conn.cursor()
         c.execute(create_table_sql)
     except Error as e:
-        sg.popup_error('Error creating table: ' + str(e))
+        gui.errorMsg('Error creating table: ' + str(e))
         # print(e)
 
 
 def dropTables():
-    cursor = conn.cursor()
-    cursor.execute('DROP TABLE projects')
-    conn.commit()
-    cursor.execute('DROP TABLE tracks')
-    conn.commit()
-    cursor.execute('DROP TABLE items')
-    conn.commit()
-    cursor.execute('DROP TABLE plugins')
-    conn.commit()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('DROP TABLE projects')
+        conn.commit()
+        cursor.execute('DROP TABLE tracks')
+        conn.commit()
+        cursor.execute('DROP TABLE items')
+        conn.commit()
+        cursor.execute('DROP TABLE plugins')
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
 
 
 def createTables():

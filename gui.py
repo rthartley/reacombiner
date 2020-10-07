@@ -5,7 +5,6 @@ from time import strptime, mktime
 from typing import Union
 
 import file_utils
-from data import Projects, Project, Track, Item, Plugin
 
 import PySimpleGUI as sg
 import rpp
@@ -17,12 +16,11 @@ sg.theme('LightGreen')
 sg.SetOptions(element_padding=(5, 5))
 bg_color = "cadetblue"
 
-allProjects: Projects = Projects()
 window: sg.Window = None
 window0: sg.Window = None
 
 # ------ Menu Definition ------ #
-menu_def = [['File', ['Add Project', 'Delete Project', 'Print Project', 'Exit']],
+menu_def = [['File', ['Add Project', 'Delete Project', 'Print Project', 'Scrape Folder', 'Exit']],
             ['Run', ['Run Reaper']],
             ['Help', 'About...']]
 
@@ -94,14 +92,12 @@ layout = [
 
 
 # noinspection SpellCheckingInspection
-def addNewProject():
-    fname = file_utils.browseFile()
-    #    print(fname[0])
-    projectFile = rppFile.openFile(fname[0])
+def addNewProject(fname):
+    projectFile = rppFile.openFile(fname)
     if projectFile is None:
         return
     #    rppFile.printStruct(projectFile)
-    dtls = rppFile.getFileDetails(fname[0])
+    dtls = rppFile.getFileDetails(fname)
     dtls.append(projectFile.find('TEMPO')[1])
     dtls.append(projectFile.find('RECORD_PATH')[1])
     dtls.append(projectFile.find('SAMPLERATE')[1])
@@ -111,10 +107,11 @@ def addNewProject():
     else:
         txt = ""
     dtls.append(txt)
-    newProject = Project(allProjects.maxProjectNum + 1, dtls[0], dtls[1], dtls[2], dtls[3], dtls[4], dtls[5], dtls[6],
-                         dtls[7])
+    newProject = data.Project(allProjects.maxProjectNum + 1, dtls[0], dtls[1], dtls[2], dtls[3], dtls[4], dtls[5],
+                              dtls[6],
+                              dtls[7])
     if allProjects.findProject(newProject):
-        sg.popup_error("Project exists")
+        errorMsg('Project already loaded: ' + dtls[0] + '/' + dtls[1])
         return
     pnum = db.addProject(dtls)
     allProjects.addProject(newProject)
@@ -183,7 +180,7 @@ def addNewProject():
                 db.addPlugin([pnum, tnum, len(items)] + pluginDtls)
 
 
-def deleteOldProject(project: Project):
+def deleteOldProject(project: data.Project):
     if 'OK' == sg.popup_ok_cancel(" Are you absolutely sure? - there is no undo"):
         pnum = project.projectNum
         db.deleteProject(pnum)
@@ -279,9 +276,9 @@ def close():
 
 
 # noinspection SpellCheckingInspection
-def showMyWindow(projects: Projects):
+def showMyWindow(projects: data.Projects):
     global allProjects
-    allProjects = Projects()
+    allProjects = data.Projects()
     updateProjects(sorted(projects.getProjects(), key=lambda proj: proj.name.upper()))
     window = window0
     window.UnHide()
@@ -313,9 +310,10 @@ def showMyWindow(projects: Projects):
                 env = os.environ.copy()
                 subprocess.Popen(['reaper', str(path)], env=env)
             else:
-                sg.popup_error('First select a project to run')
+                errorMsg('First select a project to run')
         elif event == 'Add Project':
-            addNewProject()
+            fname = file_utils.browseFile()
+            addNewProject(fname[0])
         elif event == 'Delete Project':
             # print(event)
             if len(values['PROJECTS']) > 0:
@@ -323,7 +321,7 @@ def showMyWindow(projects: Projects):
                 project = allProjects.getProject(row)
                 deleteOldProject(project)
             else:
-                sg.popup_error('First select a project to run')
+                errorMsg('First select a project to run')
         elif event == 'Print Project':
             print(event)
             if len(values['PROJECTS']) > 0:
@@ -331,7 +329,12 @@ def showMyWindow(projects: Projects):
                 project = allProjects.getProject(row)
                 project.print()
             else:
-                sg.popup_error('First select a project to run')
+                errorMsg('First select a project to run')
+        elif event == 'Scrape Folder':
+            files = file_utils.scrapeDirectory()
+            selectedFiles = file_utils.selectProjects(files)
+            for file in selectedFiles:
+                addNewProject(file)
         elif event == 'PROJECTS':
             # print(values['PROJECTS'])
             if len(values['PROJECTS']) > 0:
@@ -382,6 +385,6 @@ def showMyWindow(projects: Projects):
             sortProjects(values)
         else:
             # print(event, values)
-            sg.popup_error("Got an unknown event " + str(event))
+            errorMsg("Got an unknown event " + str(event))
     close()
     db.close()

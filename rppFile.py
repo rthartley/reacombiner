@@ -5,6 +5,8 @@ import rpp
 import PySimpleGUI as sg
 from pathlib import Path, PurePosixPath
 
+import gui
+
 
 def printStructR(children, indent):
     """
@@ -40,14 +42,14 @@ def openFile(fn):
                 try:
                     projectFile = rpp.load(file)
                 except (UnicodeDecodeError, ValueError, RuntimeError):
-                    sg.popup_error('Could not parse this file')
+                    gui.errorMsg('Could not parse this file')
                     return None
                 return projectFile
         except IOError:
-            sg.popup_error('Could not open this file')
+            gui.errorMsg('Could not open this file')
             return None
         except:
-            sg.popup_error("An unknown error occurred")
+            gui.errorMsg("An unknown error occurred")
             return None
 
 

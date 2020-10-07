@@ -5,6 +5,7 @@ import PySimpleGUI as sg
 from fpdf import FPDF
 
 import file_utils
+from file_utils import errorMsg
 
 
 class MyPDF(FPDF):
@@ -211,7 +212,7 @@ class Project:
             file_utils.lastBrowseDir = f
             sg.popup_ok('Printing finished to ' + path)
         except (PermissionError, RuntimeError):
-            sg.popup_error('Could not write to file')
+            errorMsg('Could not write to file')
 
 
 class Projects:

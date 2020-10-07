@@ -1,3 +1,5 @@
+import os
+
 import PySimpleGUI as sg
 
 lastBrowseDir = ''
@@ -17,3 +19,27 @@ def browseFile():
                                [sg.In(), sg.FileBrowse()],
                                [sg.Open(), sg.Cancel()]]).read(close=True)
     return values
+
+
+def scrapeDirectory():
+    dir = browseDir('Scrape folder')
+    files = []
+    for r, d, f in os.walk(dir):
+        for file in f:
+            if file.endswith(".rpp"):
+                print(os.path.join(r, file).replace('\\', '/'))
+                files.append(os.path.join(r, file).replace('\\', '/'))
+    return files
+
+
+def selectProjects(files):
+    rows = [[sg.Checkbox(''), sg.Text(text=f)] for f in files]
+    event, values = sg.Window('Select RPP files',
+                              [[sg.Column(rows, size=(500, 500), scrollable=True)],
+                               [sg.Open(), sg.Cancel()]]
+                              ).read(close=True)
+    return [files[i] for i in range(0, len(values)) if values[i]]
+
+
+def errorMsg(msg):
+    sg.popup_error(msg, title='Error', modal=True)
