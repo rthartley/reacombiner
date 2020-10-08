@@ -25,10 +25,14 @@ def scrapeDirectory():
     dir = browseDir('Scrape folder')
     files = []
     for r, d, f in os.walk(dir):
+        print(r)
         for file in f:
-            if file.endswith(".rpp"):
+            # print(f)
+            # for file in f:
+            if file.lower().endswith(".rpp"):
                 #  print(os.path.join(r, file).replace('\\', '/'))
                 files.append(os.path.join(r, file).replace('\\', '/'))
+    # print(files)
     return files
 
 

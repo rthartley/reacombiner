@@ -229,6 +229,9 @@ class Projects:
     def getProjects(self):
         return self.projects
 
+    def setProjects(self, projects):
+        self.projects = projects
+
     def findProjectNum(self, projectNum: int):
         for project in self.projects:
             if project.projectNum == projectNum:
@@ -246,6 +249,15 @@ class Projects:
             if p.projectNum == pnum:
                 self.projects.remove(p)
                 return
+
+    def updateProjects(self, projects):
+        self.projects = sorted(projects, key=lambda proj: proj.name.upper())
+
+    def sortProjects(self, sortBy, upordown):
+        self.projects = sorted(self.projects, key=sortBy, reverse=upordown)
+
+
+allProjects: Projects = Projects()
 
 
 def newShowTracks(table, project: Project = None):

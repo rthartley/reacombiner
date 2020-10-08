@@ -2,15 +2,11 @@ import os
 import subprocess
 from pathlib import PurePath
 from time import strptime, mktime
-from typing import Union
 
-import file_utils
-
-import PySimpleGUI as sg
 import rpp
 import db
 import rppFile
-import data
+from data import *
 
 sg.theme('LightGreen')
 sg.SetOptions(element_padding=(5, 5))
@@ -92,7 +88,7 @@ layout = [
 
 
 # noinspection SpellCheckingInspection
-def addNewProject(fname):
+def addNewProject(fname, sortBy, upordown):
     projectFile = rppFile.openFile(fname)
     if projectFile is None:
         return
@@ -107,7 +103,7 @@ def addNewProject(fname):
     else:
         txt = ""
     dtls.append(txt)
-    newProject = data.Project(allProjects.maxProjectNum + 1, dtls[0], dtls[1], dtls[2], dtls[3], dtls[4], dtls[5],
+    newProject = Project(allProjects.maxProjectNum + 1, dtls[0], dtls[1], dtls[2], dtls[3], dtls[4], dtls[5],
                               dtls[6],
                               dtls[7])
     if allProjects.findProject(newProject):
@@ -115,7 +111,8 @@ def addNewProject(fname):
         return
     pnum = db.addProject(dtls)
     allProjects.addProject(newProject)
-    updateProjects(sorted(allProjects.getProjects(), key=lambda proj: proj.name))
+    allProjects.sortProjects(sortBy, upordown)
+    updateProjectTable(allProjects.getProjects())
     tracks = projectFile.findall('TRACK')
     # print('Project has %d tracks' % len(tracks))
     clearTables()
@@ -131,7 +128,7 @@ def addNewProject(fname):
         else:
             txt = ""
         trackDtls.append(txt)
-        newTrack = data.Track(tnum, trackDtls[0], trackDtls[1], trackDtls[2], trackDtls[3], trackDtls[4], trackDtls[5])
+        newTrack = Track(tnum, trackDtls[0], trackDtls[1], trackDtls[2], trackDtls[3], trackDtls[4], trackDtls[5])
         newProject.addTrack(newTrack)
         db.addTrack([pnum, tnum] + trackDtls)
         items = track.findall('ITEM')
@@ -144,7 +141,7 @@ def addNewProject(fname):
                 itemDtls.append(fl[1])
             else:
                 itemDtls.append('')
-            newItem = data.Item(inum, itemDtls[0], itemDtls[1], itemDtls[2], itemDtls[3])
+            newItem = Item(inum, itemDtls[0], itemDtls[1], itemDtls[2], itemDtls[3])
             newTrack.addItem(newItem)
             db.addItem([pnum, tnum, inum] + itemDtls)
         fxchain = track.find('FXCHAIN')
@@ -157,15 +154,15 @@ def addNewProject(fname):
                     preset = item[1]
                     # print('PRESETNAME=' + item[1] + ' goes with VST ' + str(vst))
                     pluginDtls = [vst[0], vst[1], preset]
-                    newPlugin = data.Plugin(inum, pluginDtls[0], pluginDtls[1], pluginDtls[2])
+                    newPlugin = Plugin(inum, pluginDtls[0], pluginDtls[1], pluginDtls[2])
                     newTrack.addPlugin(newPlugin)
                     db.addPlugin([pnum, tnum, inum] + pluginDtls)
                     vst = None
                 elif isinstance(item, rpp.element.Element):
-                    if item.tag in data.pluginTypes:
+                    if item.tag in pluginTypes:
                         if vst is not None:
                             pluginDtls = [vst[0], vst[1], '']
-                            newPlugin = data.Plugin(inum, pluginDtls[0], pluginDtls[1], pluginDtls[2])
+                            newPlugin = Plugin(inum, pluginDtls[0], pluginDtls[1], pluginDtls[2])
                             newTrack.addPlugin(newPlugin)
                             db.addPlugin([pnum, tnum, inum] + pluginDtls)
                         if item.tag == 'JS':
@@ -175,12 +172,12 @@ def addNewProject(fname):
                         # print('VST=' + str(vst))
             if vst is not None:
                 pluginDtls = [vst[0], vst[1], '']
-                newPlugin = data.Plugin(len(items), pluginDtls[0], pluginDtls[1], pluginDtls[2])
+                newPlugin = Plugin(len(items), pluginDtls[0], pluginDtls[1], pluginDtls[2])
                 newTrack.addPlugin(newPlugin)
                 db.addPlugin([pnum, tnum, len(items)] + pluginDtls)
 
 
-def deleteOldProject(project: data.Project):
+def deleteOldProject(project: Project):
     if 'OK' == sg.popup_ok_cancel(" Are you absolutely sure? - there is no undo"):
         pnum = project.projectNum
         db.deleteProject(pnum)
@@ -227,9 +224,9 @@ def clearTables():
     window0.find_element('pan').update('')
     window0.find_element('aux_recvs').update('')
     window0.find('file').update('')
-    data.newShowTracks(trackTable)
-    data.newShowItems(itemTable)
-    data.newShowPlugins(pluginTable)
+    newShowTracks(trackTable)
+    newShowItems(itemTable)
+    newShowPlugins(pluginTable)
 
 
 def epochSecs(dt: str):
@@ -237,9 +234,7 @@ def epochSecs(dt: str):
     return mktime(t)
 
 
-def updateProjects(sps: list):
-    global allProjects
-    allProjects.projects = sps
+def updateProjectTable(sps: list):
     projectTable.update([p.getProjectDetails() for p in sps])
     clearTables()
 
@@ -256,15 +251,15 @@ def projectEpochSecs(project):
     return epochSecs(project.date)
 
 
-def sortProjects(values: dict):
+def sortProjectsBy(values: dict):
     if values['-SORT-NAME-']:
         sortBy = projectNameUpper
     elif values['-SORT-MIX-']:
         sortBy = projectMixUpper
     else:
         sortBy = projectEpochSecs
-    updateProjects(
-        sorted(allProjects.getProjects(), key=sortBy, reverse=values['-SORT-DOWN-']))
+    # allProjects.sortProjects(sortBy)
+    return sortBy
 
 
 def close():
@@ -276,10 +271,9 @@ def close():
 
 
 # noinspection SpellCheckingInspection
-def showMyWindow(projects: data.Projects):
-    global allProjects
-    allProjects = data.Projects()
-    updateProjects(sorted(projects.getProjects(), key=lambda proj: proj.name.upper()))
+def showMyWindow(projects: Projects):
+    allProjects.updateProjects(projects.getProjects())
+    updateProjectTable(allProjects.getProjects())
     window = window0
     window.UnHide()
 
@@ -313,7 +307,7 @@ def showMyWindow(projects: data.Projects):
                 file_utils.errorMsg('First select a project to run')
         elif event == 'Add Project':
             fname = file_utils.browseFile()
-            addNewProject(fname[0])
+            addNewProject(fname[0], sortProjectsBy(values), values['-SORT-DOWN-'])
         elif event == 'Delete Project':
             # print(event)
             if len(values['PROJECTS']) > 0:
@@ -334,7 +328,7 @@ def showMyWindow(projects: data.Projects):
             files = file_utils.scrapeDirectory()
             selectedFiles = file_utils.selectProjects(files)
             for file in selectedFiles:
-                addNewProject(file)
+                addNewProject(file, sortProjectsBy(values), values['-SORT-DOWN-'])
         elif event == 'PROJECTS':
             # print(values['PROJECTS'])
             if len(values['PROJECTS']) > 0:
@@ -347,7 +341,7 @@ def showMyWindow(projects: data.Projects):
                 window.find_element('sample_rate').update(project.sampleRate)
                 window.find_element('project_notes').update(project.projectNotes)
                 clearTables()
-                data.newShowTracks(trackTable, project)
+                newShowTracks(trackTable, project)
         elif event == 'TRACKS':
             # print(values['TRACKS'])
             if len(values['PROJECTS']) > 0 and len(values['TRACKS']) > 0:
@@ -368,8 +362,8 @@ def showMyWindow(projects: data.Projects):
                     mstr = chunk([str(int(n) + 1) for n in lst], 25)  # 25 is width of aux_recvs
                 ar.update(mstr)
                 window.find_element('track_notes').update(track.trackNotes)
-                data.newShowItems(itemTable, track)
-                data.newShowPlugins(pluginTable, track)
+                newShowItems(itemTable, track)
+                newShowPlugins(pluginTable, track)
         elif event == 'ITEMS':
             # print(values['ITEMS'])
             if len(values['PROJECTS']) > 0 and len(values['TRACKS']) > 0 and len(values['ITEMS']) > 0:
@@ -382,7 +376,8 @@ def showMyWindow(projects: data.Projects):
                 irow = values['ITEMS'][0]
                 window.find_element('file').update(chunkStr(track.getItems()[irow].file, 50))
         elif event == '-SORT-NAME-' or event == '-SORT-MIX-' or event == '-SORT-DATE-' or event == '-SORT-UP-' or event == '-SORT-DOWN-':
-            sortProjects(values)
+            allProjects.sortProjects(sortProjectsBy(values), values['-SORT-DOWN-'])
+            updateProjectTable(allProjects.getProjects())
         else:
             # print(event, values)
             file_utils.errorMsg("Got an unknown event " + str(event))
