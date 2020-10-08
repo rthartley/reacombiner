@@ -111,7 +111,7 @@ def addNewProject(fname):
                               dtls[6],
                               dtls[7])
     if allProjects.findProject(newProject):
-        errorMsg('Project already loaded: ' + dtls[0] + '/' + dtls[1])
+        file_utils.errorMsg('Project already loaded: ' + dtls[0] + '/' + dtls[1])
         return
     pnum = db.addProject(dtls)
     allProjects.addProject(newProject)
@@ -310,7 +310,7 @@ def showMyWindow(projects: data.Projects):
                 env = os.environ.copy()
                 subprocess.Popen(['reaper', str(path)], env=env)
             else:
-                errorMsg('First select a project to run')
+                file_utils.errorMsg('First select a project to run')
         elif event == 'Add Project':
             fname = file_utils.browseFile()
             addNewProject(fname[0])
@@ -321,7 +321,7 @@ def showMyWindow(projects: data.Projects):
                 project = allProjects.getProject(row)
                 deleteOldProject(project)
             else:
-                errorMsg('First select a project to run')
+                file_utils.errorMsg('First select a project to run')
         elif event == 'Print Project':
             print(event)
             if len(values['PROJECTS']) > 0:
@@ -329,7 +329,7 @@ def showMyWindow(projects: data.Projects):
                 project = allProjects.getProject(row)
                 project.print()
             else:
-                errorMsg('First select a project to run')
+                file_utils.errorMsg('First select a project to run')
         elif event == 'Scrape Folder':
             files = file_utils.scrapeDirectory()
             selectedFiles = file_utils.selectProjects(files)
@@ -385,6 +385,6 @@ def showMyWindow(projects: data.Projects):
             sortProjects(values)
         else:
             # print(event, values)
-            errorMsg("Got an unknown event " + str(event))
+            file_utils.errorMsg("Got an unknown event " + str(event))
     close()
     db.close()

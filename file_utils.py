@@ -27,13 +27,13 @@ def scrapeDirectory():
     for r, d, f in os.walk(dir):
         for file in f:
             if file.endswith(".rpp"):
-                print(os.path.join(r, file).replace('\\', '/'))
+                #  print(os.path.join(r, file).replace('\\', '/'))
                 files.append(os.path.join(r, file).replace('\\', '/'))
     return files
 
 
 def selectProjects(files):
-    rows = [[sg.Checkbox(''), sg.Text(text=f)] for f in files]
+    rows = [[sg.Checkbox('', pad=(0, 0)), sg.Text(text=f, pad=(0, 0))] for f in files]
     event, values = sg.Window('Select RPP files',
                               [[sg.Column(rows, size=(500, 500), scrollable=True)],
                                [sg.Open(), sg.Cancel()]]
