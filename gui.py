@@ -87,8 +87,31 @@ layout = [
 ]
 
 
+def projectNameUpper(project):
+    return project.name.upper()
+
+
+def projectMixUpper(project):
+    return project.mix.upper()
+
+
+def projectEpochSecs(project):
+    return epochSecs(project.date)
+
+
+def sortProjectsBy(values: dict):
+    if values['-SORT-NAME-']:
+        sortBy = projectNameUpper
+    elif values['-SORT-MIX-']:
+        sortBy = projectMixUpper
+    else:
+        sortBy = projectEpochSecs
+    # allProjects.sortProjects(sortBy)
+    return sortBy
+
+
 # noinspection SpellCheckingInspection
-def addNewProject(fname, sortBy, upordown):
+def addNewProject(fname, sortBy=projectNameUpper, reverse=False):
     projectFile = rppFile.openFile(fname)
     if projectFile is None:
         return
@@ -111,7 +134,7 @@ def addNewProject(fname, sortBy, upordown):
         return
     pnum = db.addProject(dtls)
     allProjects.addProject(newProject)
-    allProjects.sortProjects(sortBy, upordown)
+    allProjects.sortProjects(sortBy, reverse)
     updateProjectTable(allProjects.getProjects())
     tracks = projectFile.findall('TRACK')
     # print('Project has %d tracks' % len(tracks))
@@ -193,6 +216,7 @@ def createMyWindow():
                         default_button_element_size=(12, 1),
                         finalize=True, resizable=True)
     window0.Hide()
+    return window0
 
 
 def chunk(lst, upto):
@@ -237,29 +261,6 @@ def epochSecs(dt: str):
 def updateProjectTable(sps: list):
     projectTable.update([p.getProjectDetails() for p in sps])
     clearTables()
-
-
-def projectNameUpper(project):
-    return project.name.upper()
-
-
-def projectMixUpper(project):
-    return project.mix.upper()
-
-
-def projectEpochSecs(project):
-    return epochSecs(project.date)
-
-
-def sortProjectsBy(values: dict):
-    if values['-SORT-NAME-']:
-        sortBy = projectNameUpper
-    elif values['-SORT-MIX-']:
-        sortBy = projectMixUpper
-    else:
-        sortBy = projectEpochSecs
-    # allProjects.sortProjects(sortBy)
-    return sortBy
 
 
 def close():

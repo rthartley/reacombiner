@@ -23,6 +23,12 @@ class MyPDF(FPDF):
         self.fontSize = 12
         self.set_xy(0.0, 0.0)
 
+    def adjustWidth(self, str: str, width: float, slice: int):
+        if slice > 0 and self.get_string_width(str[0:-slice]) > width or slice == 0 and self.get_string_width(str) > width:
+            return self.adjustWidth(str, width, slice + 3)
+        else:
+            return slice
+
     def setFont(self, name: string = None, style=None, size=None):
         if name is not None:
             self.fontName = name
@@ -34,13 +40,24 @@ class MyPDF(FPDF):
 
     def writeStr(self, str: string, width: float, height: float, align: str = 'L', ln=1,
                  setx=None, color=None, name=None, size=None, style=None, border=0):
-        self.setFont(name, style, size)
-        if setx is not None:
-            self.set_x(setx)
-        if color is not None:
+         self.setFont(name, style, size)
+         if color is not None:
             self.set_text_color(*color)
-        self.cell(w=width, h=height, align=align, txt=str.encode(encoding='ascii', errors='backslashreplace').decode(),
-                  border=border, ln=ln)
+         slice = self.adjustWidth(str, width, 0)
+         while slice > 0:
+            if setx is not None:
+                self.set_x(setx)
+            else:
+                setx = self.get_x()
+            str1 = str[0:-slice]
+            self.cell(w=width, h=height, align=align, txt=str1.encode(encoding='ascii', errors='backslashreplace').decode(),
+                         border=border, ln=ln)
+            str = str[-slice:]
+            slice = self.adjustWidth(str, width, 0)
+         if setx is not None:
+             self.set_x(setx)
+         self.cell(w=width, h=height, align=align, txt=str.encode(encoding='ascii', errors='backslashreplace').decode(),
+                   border=border, ln=ln)
 
 
 pluginTypes = ['VST', 'VSTi', 'VST3', 'JS', 'REWIRE']
@@ -57,7 +74,7 @@ class Plugin:
         return [self.name, self.file, self.preset]
 
     def print(self, pdf: FPDF, dh: float, indent: float):
-        pdf.writeStr(self.name, 3.0, dh, setx=indent, ln=0)
+        pdf.writeStr(self.name, 4.5, dh, setx=indent, ln=0)
         pdf.writeStr(self.file, 1.75, dh, ln=0)
         pdf.writeStr("None" if self.preset == '' else self.preset, 2.0, dh)
 
@@ -116,12 +133,12 @@ class Track:
         pdf.writeStr('Main send', 1.0, dh, setx=indent, size=10, ln=0)
         pdf.writeStr('Vol', 1.5, dh, ln=0)
         pdf.writeStr('Pan', 1.5, dh, ln=0)
-        pdf.writeStr('Aux Receives', 1.5, dh, ln=0)
+        pdf.writeStr('Aux Receives', 2.3, dh, ln=0)
         pdf.writeStr('Sends', 1.5, dh)
         pdf.writeStr('Yes' if self.mainSend == '1' else 'No', 1.0, dh, setx=indent, style='', ln=0)
         pdf.writeStr(self.vol, 1.5, dh, ln=0)
         pdf.writeStr(self.pan, 1.5, dh, ln=0)
-        pdf.writeStr("None" if self.auxReceives == '' else self.auxReceives, 1.5, dh, ln=0)
+        pdf.writeStr("None" if self.auxReceives == '' else self.auxReceives, 2.3, dh, ln=0)
         pdf.writeStr('None' if len(self.sends) == 0 else ','.join(self.sends), 1.5, dh)
         if len(self.trackNotes) > 0:
             pdf.writeStr('Notes', 1.0, dh, setx=indent)
@@ -132,15 +149,15 @@ class Track:
             pdf.writeStr('Source', 0.5, dh, ln=0)
             pdf.writeStr('Position', 1.5, dh, ln=0)
             pdf.writeStr('File', 2.0, dh)
-            pdf.setFont(size=8)
+            pdf.setFont(size=10, style='')
             for item in items:
                 item.print(pdf, dh, indent)
         plugins = self.plugins.values()
         if len(plugins) > 0:
-            pdf.writeStr('Plugin Name', 3.0, dh, setx=indent, style='B', size=10, ln=0)
+            pdf.writeStr('Plugin Name', 4.5, dh, setx=indent, style='B', size=10, ln=0)
             pdf.writeStr('File', 1.75, dh, ln=0)
             pdf.writeStr('Preset', 2.0, dh)
-            pdf.setFont(style='', size=8)
+            pdf.setFont(style='', size=10)
             for plugin in plugins:
                 plugin.print(pdf, dh, indent)
 
@@ -183,7 +200,7 @@ class Project:
                 else:
                     pluginNames[name] = pluginNames[name] + 1
         for pn, n in pluginNames.items():
-            pdf.writeStr(pn if n == 1 else pn + ' (%s)' % str(n), 3.5, dh, setx=0.6)
+            pdf.writeStr(pn if n == 1 else pn + ' (%s)' % str(n), 6.5, dh, setx=0.6)
 
     def print(self):
         pdf = MyPDF()
@@ -202,6 +219,9 @@ class Project:
             pdf.setFont(size=10, style='')
             for note in self.projectNotes.split('\n'):
                 pdf.writeStr(note, 7.0, dh, setx=indent)
+        pdf.ln(0.15)
+        pdf.line(pdf.get_x(), pdf.get_y(), 8.5 - pdf.get_x(), pdf.get_y())
+        pdf.ln(0.15)
         for track in self.tracks.values():
             track.print(pdf, dh, indent)
             f = ''

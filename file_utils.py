@@ -39,7 +39,7 @@ def scrapeDirectory():
 def selectProjects(files):
     rows = [[sg.Checkbox('', pad=(0, 0)), sg.Text(text=f, pad=(0, 0))] for f in files]
     event, values = sg.Window('Select RPP files',
-                              [[sg.Column(rows, size=(500, 500), scrollable=True)],
+                              [[sg.Column(rows, size=(500, 650), scrollable=True)],
                                [sg.Open(), sg.Cancel()]]
                               ).read(close=True)
     return [files[i] for i in range(0, len(values)) if values[i]]

@@ -97,7 +97,8 @@ class DbTestCase(unittest.TestCase):
         self.create_db_file()
         self.create_db()
         db.createTables()
-        createMyWindow()  # could be mocked?
+        gui.updateProjectTable = Mock()
+        gui.clearTables = Mock()
         addNewProject('test-plugins.RPP')
         plugins = self.execute_sql("SELECT * FROM plugins ")
         self.assertEqual(len(plugins), 7)
@@ -107,11 +108,9 @@ class DbTestCase(unittest.TestCase):
         self.create_db_file()
         self.create_db()
         db.createTables()
-        self.mock = Mock(return_value=['test-plugins.RPP'])
-        createMyWindow()  # could be mocked?
-        file_utils.browseFile = self.mock
-
-        addNewProject()
+        gui.updateProjectTable = Mock()
+        gui.clearTables = Mock()
+        addNewProject('test-plugins.RPP')
         db.deleteProject(1)
         projects = self.execute_sql('SELECT * FROM projects')
         self.assertEqual(len(projects), 0)
