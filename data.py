@@ -24,7 +24,8 @@ class MyPDF(FPDF):
         self.set_xy(0.0, 0.0)
 
     def adjustWidth(self, str: str, width: float, slice: int):
-        if slice > 0 and self.get_string_width(str[0:-slice]) > width or slice == 0 and self.get_string_width(str) > width:
+        if slice > 0 and self.get_string_width(str[0:-slice]) > width or slice == 0 and self.get_string_width(
+                str) > width:
             return self.adjustWidth(str, width, slice + 3)
         else:
             return slice
@@ -40,24 +41,37 @@ class MyPDF(FPDF):
 
     def writeStr(self, str: string, width: float, height: float, align: str = 'L', ln=1,
                  setx=None, color=None, name=None, size=None, style=None, border=0):
-         self.setFont(name, style, size)
-         if color is not None:
+        strParts = {}
+        self.setFont(name, style, size)
+        if color is not None:
             self.set_text_color(*color)
-         slice = self.adjustWidth(str, width, 0)
-         while slice > 0:
-            if setx is not None:
-                self.set_x(setx)
-            else:
-                setx = self.get_x()
+        slice = self.adjustWidth(str, width, 0)
+        partsX = self.get_x() if setx is None else setx
+        if slice > 0:
             str1 = str[0:-slice]
-            self.cell(w=width, h=height, align=align, txt=str1.encode(encoding='ascii', errors='backslashreplace').decode(),
-                         border=border, ln=ln)
+            self.cell(w=width, h=height, align=align,
+                      txt=str1.encode(encoding='ascii', errors='backslashreplace').decode(),
+                      border=border, ln=ln)
+            str = str[-slice:]
+        else:
+            self.cell(w=width, h=height, align=align,
+                      txt=str.encode(encoding='ascii', errors='backslashreplace').decode(),
+                      border=border, ln=ln)
+        if slice == 0:
+            return
+        slice = self.adjustWidth(str, width, 0)
+        while slice > 0:
+            str1 = str[0:-slice]
+            strParts[str1] = partsX
             str = str[-slice:]
             slice = self.adjustWidth(str, width, 0)
-         if setx is not None:
-             self.set_x(setx)
-         self.cell(w=width, h=height, align=align, txt=str.encode(encoding='ascii', errors='backslashreplace').decode(),
-                   border=border, ln=ln)
+        strParts[str] = partsX
+        if len(strParts) > 0:
+            for str in strParts:
+                self.set_x(strParts[str])
+                self.cell(w=width, h=height, align=align,
+                          txt=str.encode(encoding='ascii', errors='backslashreplace').decode(),
+                          border=border, ln=1)
 
 
 pluginTypes = ['VST', 'VSTi', 'VST3', 'JS', 'REWIRE']
