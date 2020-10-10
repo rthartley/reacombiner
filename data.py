@@ -40,12 +40,19 @@ class MyPDF(FPDF):
         self.set_font(self.fontName, self.fontStyle, self.fontSize)
 
     def writeStr(self, str: string, width: float, height: float, align: str = 'L', ln=1,
+<<<<<<< HEAD
                  setx=None, color=None, name=None, size=None, style=None, border=0):
         strParts = {}
+=======
+                 setx=None, color=None, name=None, size=None, style=None, border=0, extras=None):
+        if extras is None:
+            extras = []
+>>>>>>> 7724460592e9d4909dbe1f2966f045b2df6af4d9
         self.setFont(name, style, size)
         if color is not None:
             self.set_text_color(*color)
         slice = self.adjustWidth(str, width, 0)
+<<<<<<< HEAD
         partsX = self.get_x() if setx is None else setx
         if slice > 0:
             str1 = str[0:-slice]
@@ -72,6 +79,49 @@ class MyPDF(FPDF):
                 self.cell(w=width, h=height, align=align,
                           txt=str.encode(encoding='ascii', errors='backslashreplace').decode(),
                           border=border, ln=1)
+=======
+        if slice == 0:
+            self.cell(w=width, h=height, align=align,
+                      txt=str.encode(encoding='ascii', errors='backslashreplace').decode(),
+                      border=border, ln=ln)
+            return extras
+        else:
+            str1 = str[0:-slice]
+            setx = self.get_x()
+            self.cell(w=width, h=height, align=align,
+                      txt=str1.encode(encoding='ascii', errors='backslashreplace').decode(),
+                      border=border, ln=ln)
+            return self.getExtras(str[-slice:], setx, width, height, align, border, extras, 0)
+
+    def writeExtras(self, extras):
+        for line in extras:
+            i = len(line)
+            for str in line:
+                props = line[str]
+                self.set_x(props["x"])
+                self.cell(w=props["width"], h=props["height"],
+                          txt=str.encode(encoding='ascii', errors='backslashreplace').decode(),
+                          ln=1 if i == 1 else 0)
+                i -= 1
+
+    def getExtras(self, str, x, width, height, align, border, extras, i):
+        lex = len(extras)
+        slice = self.adjustWidth(str, width, 0)
+        if slice == 0:
+            if i < lex:
+                extras[i][str] = {"x": x, "width": width, "height": height}
+            else:
+                extras.append({str: {"x": x, "width": width, "height": height}})
+            return extras
+        else:
+            str1 = str[0:-slice]
+            if i < lex:
+                extras[i][str1] = {"x": x, "width": width, "height": height}
+            else:
+                extras.append({str1: {"x": x, "width": width, "height": height}})
+            str2 = str[-slice:]
+            return self.getExtras(str2, x, width, height, align, border, extras, i + 1)
+>>>>>>> 7724460592e9d4909dbe1f2966f045b2df6af4d9
 
 
 pluginTypes = ['VST', 'VSTi', 'VST3', 'JS', 'REWIRE']
@@ -105,10 +155,12 @@ class Item:
         return [self.name, self.source, self.position]
 
     def print(self, pdf: MyPDF, dh: float, indent: float):
-        pdf.writeStr(self.name, 2.0, dh, setx=indent, ln=0)
+        extras1 = pdf.writeStr(self.name, 2.0, dh, setx=indent, ln=0)
         pdf.writeStr(self.source, 0.5, dh, ln=0)
         pdf.writeStr(str(self.position), 1.5, dh, ln=0)
-        pdf.writeStr(self.file, 2.0, dh)
+        extras = pdf.writeStr(self.file, 2.0, dh, extras=extras1)
+        if len(extras) > 0:
+            pdf.writeExtras(extras)
 
 
 class Track:
@@ -149,11 +201,13 @@ class Track:
         pdf.writeStr('Pan', 1.5, dh, ln=0)
         pdf.writeStr('Aux Receives', 2.3, dh, ln=0)
         pdf.writeStr('Sends', 1.5, dh)
-        pdf.writeStr('Yes' if self.mainSend == '1' else 'No', 1.0, dh, setx=indent, style='', ln=0)
+        pdf.writeStr('Yes' if self.mainSend == '1' else 'No', 1.0, height=dh, setx=indent, style='', ln=0)
         pdf.writeStr(self.vol, 1.5, dh, ln=0)
         pdf.writeStr(self.pan, 1.5, dh, ln=0)
-        pdf.writeStr("None" if self.auxReceives == '' else self.auxReceives, 2.3, dh, ln=0)
+        extras = pdf.writeStr("None" if self.auxReceives == '' else self.auxReceives, width=2.3, height=dh, ln=0)
         pdf.writeStr('None' if len(self.sends) == 0 else ','.join(self.sends), 1.5, dh)
+        if len(extras) > 0:
+          pdf.writeExtras(extras)
         if len(self.trackNotes) > 0:
             pdf.writeStr('Notes', 1.0, dh, setx=indent)
             pdf.writeStr(self.trackNotes, 2.0, 3.0, align='T', setx=indent)
@@ -242,9 +296,11 @@ class Project:
         f = file_utils.browseDir('Destination')
         try:
             path = f + '/%s.pdf' % self.name
-            pdf.output(path, 'F')
-            file_utils.lastBrowseDir = f
-            sg.popup_ok('Printing finished to ' + path)
+            if os.path.exists(path):
+                if 'OK' == sg.popup_ok_cancel("Fil exists. Are you absolutely sure?"):
+                    pdf.output(path, 'F')
+                    file_utils.lastBrowseDir = f
+                    sg.popup_ok('Printing finished to ' + path)
         except (PermissionError, RuntimeError):
             errorMsg('Could not write to file')
 
