@@ -2,12 +2,10 @@ import unittest
 from unittest.mock import Mock
 
 import PySimpleGUI as sg
-import db
+from ReaCombiner import db
 import os
 
-import file_utils
 import gui
-from data import Project, Projects
 from gui import addNewProject, projectTable, createMyWindow
 
 

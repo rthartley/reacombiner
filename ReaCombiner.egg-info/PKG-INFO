@@ -1,0 +1,16 @@
+Metadata-Version: 1.2
+Name: ReaCombiner
+Version: 0.1.0
+Summary: A program to organize Reaper projects in one place and to view their main properties
+Home-page: UNKNOWN
+Author: Roger T. Hartley
+Author-email: roger.t.hartley@gmail.com
+License: UNKNOWN
+Description: UNKNOWN
+Keywords: reaper project organize view
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Reaper users
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3
