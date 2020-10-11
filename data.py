@@ -40,46 +40,13 @@ class MyPDF(FPDF):
         self.set_font(self.fontName, self.fontStyle, self.fontSize)
 
     def writeStr(self, str: string, width: float, height: float, align: str = 'L', ln=1,
-<<<<<<< HEAD
-                 setx=None, color=None, name=None, size=None, style=None, border=0):
-        strParts = {}
-=======
                  setx=None, color=None, name=None, size=None, style=None, border=0, extras=None):
         if extras is None:
             extras = []
->>>>>>> 7724460592e9d4909dbe1f2966f045b2df6af4d9
         self.setFont(name, style, size)
         if color is not None:
             self.set_text_color(*color)
         slice = self.adjustWidth(str, width, 0)
-<<<<<<< HEAD
-        partsX = self.get_x() if setx is None else setx
-        if slice > 0:
-            str1 = str[0:-slice]
-            self.cell(w=width, h=height, align=align,
-                      txt=str1.encode(encoding='ascii', errors='backslashreplace').decode(),
-                      border=border, ln=ln)
-            str = str[-slice:]
-        else:
-            self.cell(w=width, h=height, align=align,
-                      txt=str.encode(encoding='ascii', errors='backslashreplace').decode(),
-                      border=border, ln=ln)
-        if slice == 0:
-            return
-        slice = self.adjustWidth(str, width, 0)
-        while slice > 0:
-            str1 = str[0:-slice]
-            strParts[str1] = partsX
-            str = str[-slice:]
-            slice = self.adjustWidth(str, width, 0)
-        strParts[str] = partsX
-        if len(strParts) > 0:
-            for str in strParts:
-                self.set_x(strParts[str])
-                self.cell(w=width, h=height, align=align,
-                          txt=str.encode(encoding='ascii', errors='backslashreplace').decode(),
-                          border=border, ln=1)
-=======
         if slice == 0:
             self.cell(w=width, h=height, align=align,
                       txt=str.encode(encoding='ascii', errors='backslashreplace').decode(),
@@ -121,7 +88,6 @@ class MyPDF(FPDF):
                 extras.append({str1: {"x": x, "width": width, "height": height}})
             str2 = str[-slice:]
             return self.getExtras(str2, x, width, height, align, border, extras, i + 1)
->>>>>>> 7724460592e9d4909dbe1f2966f045b2df6af4d9
 
 
 pluginTypes = ['VST', 'VSTi', 'VST3', 'JS', 'REWIRE']
@@ -297,10 +263,13 @@ class Project:
         try:
             path = f + '/%s.pdf' % self.name
             if os.path.exists(path):
-                if 'OK' == sg.popup_ok_cancel("Fil exists. Are you absolutely sure?"):
-                    pdf.output(path, 'F')
-                    file_utils.lastBrowseDir = f
-                    sg.popup_ok('Printing finished to ' + path)
+                if 'OK' == sg.popup_ok_cancel("File exists. Are you absolutely sure?"):
+                    pass
+                else:
+                    return
+            pdf.output(path, 'F')
+            file_utils.lastBrowseDir = f
+            sg.popup_ok('Printing finished to ' + path)
         except (PermissionError, RuntimeError):
             errorMsg('Could not write to file')
 
