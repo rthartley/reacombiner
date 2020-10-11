@@ -260,12 +260,13 @@ class Project:
             track.print(pdf, dh, indent)
             f = ''
         f = file_utils.browseDir('Destination')
+        if f == '':
+            return
         try:
             path = f + '/%s.pdf' % self.name
             if os.path.exists(path):
-                if 'OK' == sg.popup_ok_cancel("File exists. Are you absolutely sure?"):
-                    pass
-                else:
+                ans = sg.popup_ok_cancel("File exists. Are you absolutely sure?")
+                if 'Cancel' == ans:
                     return
             pdf.output(path, 'F')
             file_utils.lastBrowseDir = f
