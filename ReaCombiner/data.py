@@ -299,8 +299,15 @@ class Projects:
         return None
 
     def findProject(self, project: Project):
+        dtls = project.getProjectDetails()
         for p in self.projects:
-            if project.getProjectDetails() == p.getProjectDetails():
+            pdtls = p.getProjectDetails()
+            if dtls == pdtls:
+                # we already have the project
+                return "_EXISTS_"
+            elif dtls[0:2] == pdtls[0:2]:
+                # it's the same mix but  a different date, so delete
+                # the project and reinsert it
                 return p
         return None
 

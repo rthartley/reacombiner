@@ -110,6 +110,19 @@ def sortProjectsBy(values: dict):
     return sortBy
 
 
+def findTrackNotes(project: Project):
+    exts = project.find('EXTENSIONS')
+    if exts:
+        notes = exts.findall('S&M_TRACKNOTES')
+        if notes:
+            ret = {}
+            for n in range(0, len(notes)):
+                txt = "\n".join([notes[n][t][1:] for t in range(0, len(notes[n]))])
+                ret[notes[n].attrib[0]] = txt
+            return ret
+    return None
+
+
 # noinspection SpellCheckingInspection
 def addNewProject(fname, sortBy=projectNameUpper, reverse=False):
     projectFile = rppFile.openFile(fname)
@@ -129,9 +142,12 @@ def addNewProject(fname, sortBy=projectNameUpper, reverse=False):
     newProject = Project(allProjects.maxProjectNum + 1, dtls[0], dtls[1], dtls[2], dtls[3], dtls[4], dtls[5],
                               dtls[6],
                               dtls[7])
-    if allProjects.findProject(newProject):
+    rslt = allProjects.findProject(newProject)
+    if rslt == "_EXISTS_":
         file_utils.errorMsg('Project already loaded: ' + dtls[0] + '/' + dtls[1])
         return
+    elif rslt:
+        actualDeleteOldProject(rslt)
     pnum = db.addProject(dtls)
     allProjects.addProject(newProject)
     allProjects.sortProjects(sortBy, reverse)
@@ -139,16 +155,16 @@ def addNewProject(fname, sortBy=projectNameUpper, reverse=False):
     tracks = projectFile.findall('TRACK')
     # print('Project has %d tracks' % len(tracks))
     clearTables()
+    tnotes = findTrackNotes(projectFile)
     for n in range(0, len(tracks)):
         track = tracks[n]
         tnum = n + 1
         trackDtls = [track.find('NAME')[1], track.find('MAINSEND')[1], track.find('VOLPAN')[1],
                      track.find('VOLPAN')[2],
                      ",".join([lst[1] for lst in track.findall('AUXRECV')])]
-        tnotes = track.find('S&M_TRACKNOTES')
-        if tnotes is not None:
-            txt = "\n".join([tnotes[n][1:] for n in range(0, len(tnotes))])
-        else:
+        try:
+            txt = tnotes[track.attrib[0]]
+        except KeyError:
             txt = ""
         trackDtls.append(txt)
         newTrack = Track(tnum, trackDtls[0], trackDtls[1], trackDtls[2], trackDtls[3], trackDtls[4], trackDtls[5])
@@ -200,14 +216,17 @@ def addNewProject(fname, sortBy=projectNameUpper, reverse=False):
                 db.addPlugin([pnum, tnum, len(items)] + pluginDtls)
 
 
+def actualDeleteOldProject(project: Project):
+    pnum = project.projectNum
+    db.deleteProject(pnum)
+    allProjects.deleteProject(pnum)
+    clearTables()
+    projectTable.update([[project.name, project.mix, project.date] for project in allProjects.getProjects()])
+
+
 def deleteOldProject(project: Project):
     if 'OK' == sg.popup_ok_cancel(" Are you absolutely sure? - there is no undo"):
-        pnum = project.projectNum
-        db.deleteProject(pnum)
-        allProjects.deleteProject(pnum)
-        clearTables()
-        projectTable.update([[project.name, project.mix, project.date] for project in allProjects.getProjects()])
-
+        actualDeleteOldProject(project)
 
 def createMyWindow():
     global window0
