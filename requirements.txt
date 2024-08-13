@@ -6,3 +6,4 @@ PySimpleGUI==4.29.0
 pythonnet==2.5.1
 pywebview==3.3.4
 rpp==0.4
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
